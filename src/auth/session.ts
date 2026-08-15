@@ -119,22 +119,29 @@ function buildSession(tokens: TokenResponse, existingRefreshToken: string): Stor
   }
 }
 
+// Refreshes and persists a session, or clears it on failure (refresh token itself
+// expired after 30 days, or a network error) -- returns null in that case so the
+// caller can fall back cleanly to logged-out rather than looping or leaving stale
+// tokens around. Shared by the scheduled-timer path and the near-expiry-on-mount path.
+async function performRefresh(session: StoredSession): Promise<StoredSession | null> {
+  try {
+    const tokens = await refreshTokens(session.refreshToken)
+    const next = buildSession(tokens, session.refreshToken)
+    saveSession(next)
+    return next
+  } catch {
+    clearSession()
+    return null
+  }
+}
+
 function scheduleRefresh(session: StoredSession) {
   clearTimeout(refreshTimeoutId)
   const delay = Math.max(0, session.expiresAt - Date.now() - REFRESH_LEEWAY_MS)
   refreshTimeoutId = setTimeout(async () => {
-    try {
-      const tokens = await refreshTokens(session.refreshToken)
-      const next = buildSession(tokens, session.refreshToken)
-      saveSession(next)
-      notify(next)
-      scheduleRefresh(next)
-    } catch {
-      // Refresh token itself expired (30 days) or a network error -- fall back cleanly
-      // to logged-out rather than looping or leaving stale tokens around.
-      clearSession()
-      notify(null)
-    }
+    const next = await performRefresh(session)
+    notify(next)
+    if (next) scheduleRefresh(next)
   }, delay)
 }
 
@@ -178,16 +185,9 @@ async function initFromStoredSession() {
   }
 
   if (session.expiresAt - Date.now() < REFRESH_LEEWAY_MS) {
-    try {
-      const tokens = await refreshTokens(session.refreshToken)
-      const next = buildSession(tokens, session.refreshToken)
-      saveSession(next)
-      scheduleRefresh(next)
-      notify(next)
-    } catch {
-      clearSession()
-      notify(null)
-    }
+    const next = await performRefresh(session)
+    if (next) scheduleRefresh(next)
+    notify(next)
     return
   }
 
