@@ -1,9 +1,32 @@
 ## Status
 
-Placeholder "coming soon" page only — no routes, no API calls, no auth.
+Placeholder "coming soon" page with a minimal Cognito login/logout
+affordance (hand-rolled Authorization Code + PKCE flow via the Web Crypto
+API — no `oidc-client-ts`/`react-oidc-context`, since those libraries'
+issuer auto-discovery targets Cognito's default domain, not the custom
+`auth.civicdog.com` Managed Login domain, requiring manual metadata
+overrides anyway). See `src/auth/`. Tokens live in `localStorage` (so the
+"Hi, [name]" greeting survives reloads); the PKCE verifier/state live in
+`sessionStorage` for the redirect round trip only. Access/id tokens (1hr
+validity) are silently renewed via the refresh token (30-day validity) on
+a scheduled timer — see `scheduleRefresh` in `src/auth/session.ts`.
+
+`/callback` is handled via a `window.location.pathname` check in
+`src/auth/session.ts`, not a routing library — it's the only non-`/` path
+in the app. Don't add `react-router` for this alone; revisit if a second
+real route appears.
+
+Cognito infra (User Pool, the `cd-webapp-dev`/`cd-webapp-prod` app
+clients, `auth.civicdog.com` Managed Login domain) is provisioned in
+`cd-infra`'s Terraform (`terraform/cd-webapp/main.tf`), not this repo.
+Both app clients are public (no secret) — PKCE is inherent to that, not a
+separate Terraform toggle. Local dev needs a `.env.local` (see
+`.env.example`) with the dev client's values; prod's are set as the
+Amplify app's build env vars.
+
 The backend (`cd-server`, a GraphQL API) doesn't exist yet; it will live
-in the `cd-platform` monorepo. Don't wire up a GraphQL client, routing, or
-env-based API config until that service exists.
+in the `cd-platform` monorepo. Don't wire up a GraphQL client or
+env-based API config for it until that service exists.
 
 ## Commands
 
