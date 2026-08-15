@@ -53,7 +53,11 @@ function clearSession() {
 function decodeJwtPayload(token: string): Record<string, unknown> {
   const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
   const padded = payload.padEnd(payload.length + ((4 - (payload.length % 4)) % 4), '=')
-  return JSON.parse(atob(padded)) as Record<string, unknown>
+  // atob gives a binary string (one char per byte) -- decode it as UTF-8 bytes rather
+  // than handing it straight to JSON.parse, or non-ASCII claims (e.g. accented names)
+  // come out mojibake'd.
+  const bytes = Uint8Array.from(atob(padded), (c) => c.charCodeAt(0))
+  return JSON.parse(new TextDecoder().decode(bytes)) as Record<string, unknown>
 }
 
 function extractDisplayName(idToken: string): string {
