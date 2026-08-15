@@ -195,10 +195,31 @@ async function initFromStoredSession() {
   notify(session)
 }
 
+// Cognito's hosted logout doesn't revoke the refresh token, so a background tab's
+// already-scheduled refresh timer would otherwise keep firing after logout and silently
+// repopulate localStorage. React to the other tab's localStorage change instead of
+// waiting for that timer: clear this tab's timer and mirror the new state immediately.
+function handleStorageEvent(event: StorageEvent) {
+  if (event.key !== SESSION_KEY) return
+  clearTimeout(refreshTimeoutId)
+  if (!event.newValue) {
+    notify(null)
+    return
+  }
+  try {
+    const session = JSON.parse(event.newValue) as StoredSession
+    scheduleRefresh(session)
+    notify(session)
+  } catch {
+    notify(null)
+  }
+}
+
 let initialized = false
 function ensureInitialized() {
   if (initialized) return
   initialized = true
+  window.addEventListener('storage', handleStorageEvent)
   if (window.location.pathname === '/callback') {
     void handleCallback()
   } else {
