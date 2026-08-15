@@ -232,7 +232,7 @@ export function useAuth() {
 
   const logout = useCallback(() => {
     clearSession()
-    setSession(null)
+    notify(null)
     window.location.href = buildLogoutUrl()
   }, [])
 
