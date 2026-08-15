@@ -1,4 +1,4 @@
-# CivicDog Webapp
+# CivicDog Portal
 
 Customer portal for managing API keys and tracking usage.
 
