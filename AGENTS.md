@@ -28,6 +28,13 @@ The backend (`cd-server`, a GraphQL API) doesn't exist yet; it will live
 in the `cd-platform` monorepo. Don't wire up a GraphQL client or
 env-based API config for it until that service exists.
 
+## Checking what's deployed
+
+`npm run build` writes `dist/version.json` (commit SHA + build timestamp)
+as a `postbuild` hook (`scripts/write-version.mjs`), deployed alongside
+`index.html` at the site root. To check what's live:
+`curl https://app.civicdog.com/version.json`.
+
 ## Commands
 
 ```bash
