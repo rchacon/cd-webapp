@@ -1,4 +1,8 @@
+import { useAuth } from './auth/session'
+
 function App() {
+  const { displayName, isLoading, login, logout } = useAuth()
+
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-b from-navy-900 to-navy-950 px-6 text-center">
       <div className="max-w-xl">
@@ -25,6 +29,34 @@ function App() {
         <p className="mt-6 text-lg text-blue-100">
           Manage your API keys and track usage — all in one place. We're building it now.
         </p>
+
+        {!isLoading && (
+          <div className="mt-8">
+            {displayName ? (
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-base font-medium text-white">Hi, {displayName}</span>
+                <span className="text-blue-300/50" aria-hidden="true">
+                  ·
+                </span>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="text-sm font-medium text-blue-300 underline decoration-blue-300/40 underline-offset-4 transition-colors hover:text-blue-200"
+                >
+                  Log out
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={login}
+                className="rounded-full bg-blue-500 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-400"
+              >
+                Log in / Sign up
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
