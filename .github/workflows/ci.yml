@@ -1,4 +1,4 @@
-name: cd-portal CI
+name: cd-webapp CI
 
 on:
   pull_request:
