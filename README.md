@@ -1,6 +1,6 @@
-# CivicDog Portal
+# CivicDog Webapp
 
-Customer portal for managing API keys and tracking usage.
+The CivicDog web application.
 
 Currently a placeholder "coming soon" page — no API integration yet
 (the backend GraphQL service, `cd-server`, doesn't exist yet either — it will
