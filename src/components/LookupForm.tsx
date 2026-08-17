@@ -178,6 +178,7 @@ export function LookupForm() {
               checked={chamber === 'senators'}
               onChange={() => {
                 setChamber('senators')
+                if (!senateEligibleStates.some((s) => s.abbr === stateCode)) setStateCode('')
                 resetStatus()
               }}
               disabled={isLoading}

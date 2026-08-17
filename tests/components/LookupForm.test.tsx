@@ -112,6 +112,19 @@ describe('chamber/mode switching regression', () => {
     expect(screen.getByRole('radio', { name: 'Senators' })).not.toBeDisabled()
     expect(screen.getByRole('button', { name: /enter your address instead/i })).not.toBeDisabled()
   })
+
+  it('clears a selected state that is not senate-eligible when switching to Senators', async () => {
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'Puerto Rico')
+
+    await user.click(screen.getByRole('radio', { name: 'Senators' }))
+
+    expect(screen.getByRole('combobox')).toHaveValue('')
+  })
 })
 
 describe('district number input constraints', () => {
