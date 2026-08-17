@@ -11,6 +11,9 @@ export default defineConfig({
     env: {
       VITE_COGNITO_DOMAIN: 'auth.test.civicdog.com',
       VITE_COGNITO_CLIENT_ID: 'test-client-id',
+      // Pinned so the suite doesn't depend on whatever .env.local happens to
+      // be set to on a given machine (e.g. pointed at a live deployment).
+      VITE_CD_SERVER_URL: 'http://localhost:8000/graphql',
     },
   },
 })
