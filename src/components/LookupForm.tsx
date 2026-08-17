@@ -99,8 +99,9 @@ export function LookupForm() {
 
   const selectedState = states?.find((s) => s.abbr === stateCode)
   // At-large states (a single seat) use district 0; every other state numbers districts 1..seats.
-  const districtMin = selectedState && selectedState.seats > 1 ? 1 : 0
-  const districtMax = selectedState && (selectedState.seats === 1 ? 0 : selectedState.seats)
+  const isAtLargeState = selectedState?.seats === 1
+  const districtMin = selectedState && !isAtLargeState ? 1 : 0
+  const districtMax = selectedState && (isAtLargeState ? 0 : selectedState.seats)
 
   function resetStatus() {
     if (status.kind !== 'loading') setStatus({ kind: 'idle' })
@@ -228,6 +229,7 @@ export function LookupForm() {
                   value={stateCode}
                   onChange={(e) => {
                     setStateCode(e.target.value)
+                    setDistrict('')
                     resetStatus()
                   }}
                   required
@@ -252,7 +254,7 @@ export function LookupForm() {
                   }}
                   placeholder={
                     selectedState
-                      ? selectedState.seats === 1
+                      ? isAtLargeState
                         ? 'District number (0 for at-large)'
                         : `District number (1–${selectedState.seats})`
                       : 'District number'

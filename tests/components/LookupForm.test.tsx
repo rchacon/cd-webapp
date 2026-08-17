@@ -141,6 +141,20 @@ describe('district number input constraints', () => {
     expect(districtInput).toHaveAttribute('max', '0')
   })
 
+  it('clears a stale district value when the selected state changes', async () => {
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'California')
+    await user.type(screen.getByPlaceholderText('District number (1–52)'), '45')
+
+    await user.selectOptions(stateSelect, 'Puerto Rico')
+
+    expect(screen.getByPlaceholderText('District number (0 for at-large)')).toHaveValue(null)
+  })
+
   it('has no min/max constraint before a state is selected', async () => {
     render(<LookupForm />)
 
