@@ -31,6 +31,14 @@ function formatMemberName(member: Member): string {
     .join(' ')
 }
 
+function isHttpUrl(url: string): boolean {
+  try {
+    return ['http:', 'https:'].includes(new URL(url).protocol)
+  } catch {
+    return false
+  }
+}
+
 function MemberCard({ member }: { member: Representative | Senator }) {
   return (
     <li className="rounded-2xl bg-white/10 p-5 text-left ring-1 ring-white/15">
@@ -46,7 +54,7 @@ function MemberCard({ member }: { member: Representative | Senator }) {
       </div>
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-blue-100">
         {member.phone && <span>{member.phone}</span>}
-        {member.website && (
+        {member.website && isHttpUrl(member.website) && (
           <a
             href={member.website}
             target="_blank"

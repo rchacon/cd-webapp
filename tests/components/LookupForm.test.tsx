@@ -282,4 +282,38 @@ describe('member card rendering', () => {
 
     expect(await screen.findByText('Jonathan Smith')).toBeInTheDocument()
   })
+
+  it('renders a Website link for an http(s) URL', async () => {
+    vi.mocked(getSenators).mockResolvedValueOnce([{ ...SENATOR, website: 'https://example.gov' }])
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    await user.click(screen.getByRole('radio', { name: 'Senators' }))
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'California')
+    await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+    expect(await screen.findByRole('link', { name: 'Website' })).toHaveAttribute(
+      'href',
+      'https://example.gov',
+    )
+  })
+
+  it('does not render a Website link for a non-http(s) URL', async () => {
+    vi.mocked(getSenators).mockResolvedValueOnce([
+      { ...SENATOR, website: 'javascript:alert(1)' },
+    ])
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    await user.click(screen.getByRole('radio', { name: 'Senators' }))
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'California')
+    await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+    await screen.findByText('John Smith')
+    expect(screen.queryByRole('link', { name: 'Website' })).not.toBeInTheDocument()
+  })
 })
