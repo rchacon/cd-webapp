@@ -7,7 +7,11 @@ interface GraphQLResponse<T> {
   errors?: Array<{ message: string }>
 }
 
-async function graphqlRequest<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+async function graphqlRequest<T extends Record<string, unknown>, K extends keyof T>(
+  query: string,
+  variables: Record<string, unknown>,
+  field: K,
+): Promise<NonNullable<T[K]>> {
   let response: Response
   try {
     response = await fetch(CD_SERVER_URL, {
@@ -34,10 +38,14 @@ async function graphqlRequest<T>(query: string, variables: Record<string, unknow
   if (payload.errors?.length) {
     throw new CdServerError(payload.errors[0]?.message ?? 'Lookup service returned an error.')
   }
-  if (!response.ok || !payload.data) {
+  // Check the specific field, not just the envelope: a resolver can return
+  // {data: {getSenators: null}} with no errors entry, and callers rely on
+  // this function to never hand back a null/undefined result.
+  const value = payload.data?.[field]
+  if (!response.ok || value == null) {
     throw new CdServerError(`Lookup service returned an error (status ${response.status}).`)
   }
-  return payload.data
+  return value as NonNullable<T[K]>
 }
 
 export interface Member {
@@ -95,24 +103,25 @@ const GET_SENATORS_QUERY = `
 `
 
 export async function getStates(): Promise<StateOption[]> {
-  const data = await graphqlRequest<{ getStates: StateOption[] }>(GET_STATES_QUERY, {})
-  return data.getStates
+  return graphqlRequest<{ getStates: StateOption[] }, 'getStates'>(GET_STATES_QUERY, {}, 'getStates')
 }
 
 export async function getDistrict(address: string): Promise<DistrictLookup> {
-  const data = await graphqlRequest<{ getDistrict: DistrictLookup }>(GET_DISTRICT_QUERY, { address })
-  return data.getDistrict
+  return graphqlRequest<{ getDistrict: DistrictLookup }, 'getDistrict'>(
+    GET_DISTRICT_QUERY,
+    { address },
+    'getDistrict',
+  )
 }
 
 export async function getRepresentatives(state: string, district: number): Promise<Representative[]> {
-  const data = await graphqlRequest<{ getRepresentatives: Representative[] }>(
+  return graphqlRequest<{ getRepresentatives: Representative[] }, 'getRepresentatives'>(
     GET_REPRESENTATIVES_QUERY,
     { state, district },
+    'getRepresentatives',
   )
-  return data.getRepresentatives
 }
 
 export async function getSenators(state: string): Promise<Senator[]> {
-  const data = await graphqlRequest<{ getSenators: Senator[] }>(GET_SENATORS_QUERY, { state })
-  return data.getSenators
+  return graphqlRequest<{ getSenators: Senator[] }, 'getSenators'>(GET_SENATORS_QUERY, { state }, 'getSenators')
 }

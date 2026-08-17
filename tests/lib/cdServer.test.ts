@@ -83,6 +83,18 @@ describe('getStates', () => {
       new CdServerError('Lookup service returned an error (status 500).'),
     )
   })
+
+  it('throws CdServerError when the resolver returns a null field with no errors entry', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: { getStates: null } }),
+    } as Response)
+
+    await expect(getStates()).rejects.toThrow(
+      new CdServerError('Lookup service returned an error (status 200).'),
+    )
+  })
 })
 
 describe('getDistrict', () => {
@@ -112,6 +124,16 @@ describe('getDistrict', () => {
     await expect(getDistrict('nowhere')).rejects.toThrow(
       new CdServerError('Could not geocode address'),
     )
+  })
+
+  it('throws CdServerError when the resolver returns a null field with no errors entry', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: { getDistrict: null } }),
+    } as Response)
+
+    await expect(getDistrict('nowhere')).rejects.toThrow(CdServerError)
   })
 })
 
