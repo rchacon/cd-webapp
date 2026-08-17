@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { LookupForm } from '../../src/components/LookupForm'
 import { CdServerError, getDistrict, getRepresentatives, getSenators, getStates } from '../../src/lib/cdServer'
@@ -59,6 +59,7 @@ function deferred<T>() {
 }
 
 beforeEach(() => {
+  vi.clearAllMocks()
   vi.mocked(getStates).mockResolvedValue(STATES)
 })
 
@@ -174,6 +175,22 @@ describe('district number input constraints', () => {
     const districtInput = await screen.findByPlaceholderText('District number')
     expect(districtInput).toHaveAttribute('min', '0')
     expect(districtInput).not.toHaveAttribute('max')
+  })
+
+  it('rejects an empty district value at the JS level, not just via the required attribute', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<LookupForm />)
+
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'California')
+
+    // Bypass native HTML5 constraint validation (which a real browser would
+    // enforce on a user-triggered submit) to exercise handleSubmit's own guard.
+    fireEvent.submit(container.querySelector('form')!)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter a valid district number.')
+    expect(getRepresentatives).not.toHaveBeenCalled()
   })
 })
 

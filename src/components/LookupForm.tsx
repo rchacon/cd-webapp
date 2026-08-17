@@ -118,11 +118,20 @@ export function LookupForm() {
       }
 
       let resolvedState = stateCode
-      let resolvedDistrict = Number(district)
+      let resolvedDistrict: number
       if (repMode === 'address') {
         const resolved = await getDistrict(address)
         resolvedState = resolved.state
         resolvedDistrict = resolved.district
+      } else {
+        resolvedDistrict = Number(district)
+        // Number('') is 0, not NaN -- an empty field would otherwise silently
+        // query an at-large district instead of being rejected. The `required`
+        // attribute normally blocks this, but that's a UI-layer constraint,
+        // not a guarantee handleSubmit itself can rely on.
+        if (district.trim() === '' || !Number.isInteger(resolvedDistrict)) {
+          throw new CdServerError('Enter a valid district number.')
+        }
       }
       const members = await getRepresentatives(resolvedState, resolvedDistrict)
       setStatus({ kind: 'success', members })
