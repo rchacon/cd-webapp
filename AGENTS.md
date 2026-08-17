@@ -1,9 +1,11 @@
 ## Status
 
-Placeholder "coming soon" page with a minimal Cognito login/logout
-affordance (hand-rolled Authorization Code + PKCE flow via the Web Crypto
-API — no `oidc-client-ts`/`react-oidc-context`, since those libraries'
-issuer auto-discovery targets Cognito's default domain, not the custom
+A representatives/senators lookup form (`src/components/LookupForm.tsx`)
+is the main page content — the earlier "coming soon" placeholder is gone.
+Plus a minimal Cognito login/logout affordance in the header
+(hand-rolled Authorization Code + PKCE flow via the Web Crypto API — no
+`oidc-client-ts`/`react-oidc-context`, since those libraries' issuer
+auto-discovery targets Cognito's default domain, not the custom
 `auth.civicdog.com` Managed Login domain, requiring manual metadata
 overrides anyway). See `src/auth/`. Tokens live in `localStorage` (so the
 "Hi, [name]" greeting survives reloads); the PKCE verifier/state live in
@@ -24,9 +26,28 @@ separate Terraform toggle. Local dev needs a `.env.local` (see
 `.env.example`) with the dev client's values; prod's are set as the
 Amplify app's build env vars.
 
-The backend (`cd-server`, a GraphQL API) doesn't exist yet; it will live
-in the `cd-platform` monorepo. Don't wire up a GraphQL client or
-env-based API config for it until that service exists.
+`cd-server` (a GraphQL API, in the `cd-platform` monorepo) exists now but
+is **local-dev-only** — no deployment exists for it yet (no Terraform
+resource). Run it locally via `cd-platform`'s `make start-server` (plus
+`make start-api` for cd-api, which cd-server calls out to). The lookup
+form talks to it through a hand-rolled GraphQL client in
+`src/lib/cdServer.ts` (`VITE_CD_SERVER_URL`, default
+`http://localhost:8000/graphql`) — no Apollo/urql, same hand-rolled-over-
+library posture as `src/auth/`. Introspection is disabled server-side, so
+the query strings/types in `cdServer.ts` are hand-written against the
+schema, not generated — keep them in sync manually if `cd-server`'s
+schema changes. `getStates` and `getDistrict` are both real backend
+calls (the states list and the address→district geocoding both happen
+server-side) — don't reintroduce a hardcoded state list or a client-side
+mock, both existed briefly during planning and are gone now that the
+real fields work.
+
+`cd-server`'s `CORSMiddleware` (`app.py`) allow-lists exactly
+`http://localhost:5183` and `https://app.civicdog.com` (see
+`cd-server/src/cd/server/settings.py`'s `CORS_ALLOWED_ORIGINS`) — verified
+working end-to-end against a real local `cd-server` + `cd-api`. If you're
+running the dev server on a different port, requests will fail with a
+CORS error; that's the allow-list, not a bug to chase in this repo.
 
 ## Checking what's deployed
 

@@ -1,0 +1,216 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import {
+  CdServerError,
+  getStates,
+  getDistrict,
+  getRepresentatives,
+  getSenators,
+} from '../../src/lib/cdServer'
+
+beforeEach(() => {
+  vi.stubGlobal('fetch', vi.fn())
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+describe('getStates', () => {
+  it('returns parsed states on a successful response', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        data: { getStates: [{ abbr: 'CA', name: 'California', seats: 52, votingSeats: true }] },
+      }),
+    } as Response)
+
+    const result = await getStates()
+
+    expect(result).toEqual([{ abbr: 'CA', name: 'California', seats: 52, votingSeats: true }])
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:8000/graphql',
+      expect.objectContaining({ method: 'POST' }),
+    )
+  })
+
+  it('throws CdServerError when fetch rejects (network/CORS failure)', async () => {
+    vi.mocked(fetch).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    await expect(getStates()).rejects.toThrow(
+      new CdServerError('Could not reach the lookup service. Please try again later.'),
+    )
+  })
+
+  it('the network-failure rejection is an instance of CdServerError', async () => {
+    vi.mocked(fetch).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    await expect(getStates()).rejects.toBeInstanceOf(CdServerError)
+  })
+
+  it('throws CdServerError when the response body is not valid JSON', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new SyntaxError('Unexpected token')
+      },
+    } as unknown as Response)
+
+    await expect(getStates()).rejects.toThrow(
+      new CdServerError('Unexpected response from lookup service (status 200).'),
+    )
+  })
+
+  it('throws CdServerError with the GraphQL error message when payload.errors is present', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ errors: [{ message: 'boom' }] }),
+    } as Response)
+
+    await expect(getStates()).rejects.toThrow(new CdServerError('boom'))
+  })
+
+  it('throws CdServerError on a non-2xx status with no errors array', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({}),
+    } as Response)
+
+    await expect(getStates()).rejects.toThrow(
+      new CdServerError('Lookup service returned an error (status 500).'),
+    )
+  })
+
+  it('throws CdServerError when the resolver returns a null field with no errors entry', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: { getStates: null } }),
+    } as Response)
+
+    await expect(getStates()).rejects.toThrow(
+      new CdServerError('Lookup service returned an error (status 200).'),
+    )
+  })
+})
+
+describe('getDistrict', () => {
+  it('returns the resolved state and district on success', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: { getDistrict: { state: 'CA', district: 12 } } }),
+    } as Response)
+
+    const result = await getDistrict('1 Main St, San Francisco, CA')
+
+    expect(result).toEqual({ state: 'CA', district: 12 })
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:8000/graphql',
+      expect.objectContaining({ method: 'POST' }),
+    )
+  })
+
+  it('throws CdServerError when the geocode fails', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ errors: [{ message: 'Could not geocode address' }] }),
+    } as Response)
+
+    await expect(getDistrict('nowhere')).rejects.toThrow(
+      new CdServerError('Could not geocode address'),
+    )
+  })
+
+  it('throws CdServerError when the resolver returns a null field with no errors entry', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: { getDistrict: null } }),
+    } as Response)
+
+    await expect(getDistrict('nowhere')).rejects.toThrow(CdServerError)
+  })
+})
+
+describe('getRepresentatives', () => {
+  it('returns representatives on success', async () => {
+    const rep = {
+      bioguideId: 'A000000',
+      firstName: 'Jane',
+      middleName: null,
+      lastName: 'Doe',
+      nickname: null,
+      suffix: null,
+      role: 'Representative',
+      district: 12,
+      party: 'Independent',
+      phone: null,
+      website: null,
+      photoUrl: null,
+    }
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: { getRepresentatives: [rep] } }),
+    } as Response)
+
+    const result = await getRepresentatives('CA', 12)
+
+    expect(result).toEqual([rep])
+  })
+
+  it('throws CdServerError on a server error', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({}),
+    } as Response)
+
+    await expect(getRepresentatives('CA', 12)).rejects.toThrow(
+      new CdServerError('Lookup service returned an error (status 500).'),
+    )
+  })
+})
+
+describe('getSenators', () => {
+  it('returns senators on success', async () => {
+    const senator = {
+      bioguideId: 'B000000',
+      firstName: 'John',
+      middleName: null,
+      lastName: 'Smith',
+      nickname: null,
+      suffix: null,
+      party: 'Independent',
+      phone: null,
+      website: null,
+      photoUrl: null,
+    }
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: { getSenators: [senator] } }),
+    } as Response)
+
+    const result = await getSenators('CA')
+
+    expect(result).toEqual([senator])
+  })
+
+  it('throws CdServerError on a server error', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({}),
+    } as Response)
+
+    await expect(getSenators('CA')).rejects.toThrow(
+      new CdServerError('Lookup service returned an error (status 500).'),
+    )
+  })
+})
