@@ -14,6 +14,15 @@ import {
 type Chamber = 'representatives' | 'senators'
 type RepMode = 'district' | 'address'
 
+// The only search mode that doesn't need the `states` list loaded is
+// representatives-by-address (getDistrict/getRepresentatives never read it).
+// Named and centralized here, rather than inlined at the formDisabled call
+// site, so a future mode with the same property has one obvious place to
+// update instead of a scattered boolean someone has to remember to touch.
+function modeNeedsStates(chamber: Chamber, repMode: RepMode): boolean {
+  return !(chamber === 'representatives' && repMode === 'address')
+}
+
 type Status =
   | { kind: 'idle' }
   | { kind: 'loading' }
@@ -154,8 +163,7 @@ export function LookupForm() {
   }
 
   const isLoading = status.kind === 'loading'
-  const usesAddressLookup = chamber === 'representatives' && repMode === 'address'
-  const formDisabled = isLoading || (!usesAddressLookup && !states)
+  const formDisabled = isLoading || (modeNeedsStates(chamber, repMode) && !states)
 
   return (
     <div className="mx-auto max-w-xl">
