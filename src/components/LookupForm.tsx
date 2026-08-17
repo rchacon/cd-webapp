@@ -39,7 +39,12 @@ function isHttpUrl(url: string): boolean {
   }
 }
 
-function MemberCard({ member }: { member: Representative | Senator }) {
+function MemberCard({ member, chamber }: { member: Representative | Senator; chamber: Chamber }) {
+  // The chamber that was actually searched is the authoritative signal for
+  // whether `member` is a Representative -- not whether the GraphQL response
+  // happens to include a `role` field, which could drift from this component
+  // if the query strings in cdServer.ts ever change independently.
+  const role = chamber === 'representatives' ? (member as Representative).role : null
   return (
     <li className="rounded-2xl bg-white/10 p-5 text-left ring-1 ring-white/15">
       <div className="flex items-center gap-4">
@@ -48,7 +53,7 @@ function MemberCard({ member }: { member: Representative | Senator }) {
         )}
         <div>
           <p className="text-lg font-semibold text-white">{formatMemberName(member) || 'Unnamed'}</p>
-          {'role' in member && <p className="text-sm text-blue-300">{member.role}</p>}
+          {role && <p className="text-sm text-blue-300">{role}</p>}
           {member.party && <p className="text-sm text-blue-100">{member.party}</p>}
         </div>
       </div>
@@ -316,7 +321,7 @@ export function LookupForm() {
             <p className="text-blue-100">No results found.</p>
           ) : (
             status.members.map((member) => (
-              <MemberCard key={member.bioguideId} member={member} />
+              <MemberCard key={member.bioguideId} member={member} chamber={chamber} />
             ))
           )}
         </ul>

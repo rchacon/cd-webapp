@@ -316,4 +316,34 @@ describe('member card rendering', () => {
     await screen.findByText('John Smith')
     expect(screen.queryByRole('link', { name: 'Website' })).not.toBeInTheDocument()
   })
+
+  it('renders the role for a representatives search', async () => {
+    vi.mocked(getRepresentatives).mockResolvedValueOnce([REP])
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'California')
+    await user.type(screen.getByPlaceholderText('District number (1–52)'), '12')
+    await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+    await screen.findByText('Jane Doe')
+    expect(screen.getByText('Representative')).toBeInTheDocument()
+  })
+
+  it('does not render a role for a senators search, regardless of response shape', async () => {
+    vi.mocked(getSenators).mockResolvedValueOnce([SENATOR])
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    await user.click(screen.getByRole('radio', { name: 'Senators' }))
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'California')
+    await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+    await screen.findByText('John Smith')
+    expect(screen.queryByText('Representative')).not.toBeInTheDocument()
+  })
 })
