@@ -30,7 +30,7 @@ type Status =
   | { kind: 'success'; members: Array<Representative | Senator> }
 
 function errorMessage(err: unknown): string {
-  if (err instanceof CdServerError || err instanceof Error) return err.message
+  if (err instanceof Error) return err.message
   return 'Something went wrong. Please try again.'
 }
 
