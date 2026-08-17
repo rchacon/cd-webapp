@@ -126,7 +126,8 @@ export function LookupForm() {
   }
 
   const isLoading = status.kind === 'loading'
-  const formDisabled = isLoading || !states
+  const usesAddressLookup = chamber === 'representatives' && repMode === 'address'
+  const formDisabled = isLoading || (!usesAddressLookup && !states)
 
   return (
     <div className="mx-auto max-w-xl">
