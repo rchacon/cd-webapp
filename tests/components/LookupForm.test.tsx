@@ -1,0 +1,189 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { LookupForm } from '../../src/components/LookupForm'
+import { CdServerError, getDistrict, getRepresentatives, getSenators, getStates } from '../../src/lib/cdServer'
+
+vi.mock('../../src/lib/cdServer', async () => {
+  const actual = await vi.importActual<typeof import('../../src/lib/cdServer')>('../../src/lib/cdServer')
+  return {
+    ...actual,
+    getStates: vi.fn(),
+    getDistrict: vi.fn(),
+    getRepresentatives: vi.fn(),
+    getSenators: vi.fn(),
+  }
+})
+
+const STATES = [
+  { abbr: 'CA', name: 'California', seats: 52, votingSeats: true },
+  { abbr: 'PR', name: 'Puerto Rico', seats: 1, votingSeats: false },
+]
+
+const REP = {
+  bioguideId: 'A000000',
+  firstName: 'Jane',
+  middleName: null,
+  lastName: 'Doe',
+  nickname: null,
+  suffix: null,
+  role: 'Representative',
+  district: 12,
+  party: 'Independent',
+  phone: null,
+  website: null,
+  photoUrl: null,
+}
+
+const SENATOR = {
+  bioguideId: 'B000000',
+  firstName: 'John',
+  middleName: null,
+  lastName: 'Smith',
+  nickname: null,
+  suffix: null,
+  party: 'Independent',
+  phone: null,
+  website: null,
+  photoUrl: null,
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
+
+beforeEach(() => {
+  vi.mocked(getStates).mockResolvedValue(STATES)
+})
+
+describe('address lookup availability regression', () => {
+  it('keeps the address flow usable while getStates() is still pending', async () => {
+    vi.mocked(getStates).mockReturnValue(new Promise(() => {}))
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    await user.click(screen.getByRole('button', { name: /enter your address instead/i }))
+
+    expect(screen.getByPlaceholderText(/street address/i)).not.toBeDisabled()
+    expect(screen.getByRole('button', { name: /^search$/i })).not.toBeDisabled()
+  })
+
+  it('keeps the address flow usable after getStates() rejects', async () => {
+    vi.mocked(getStates).mockRejectedValue(new CdServerError('states unavailable'))
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    await screen.findByText(/couldn't load the list of states/i)
+    await user.click(screen.getByRole('button', { name: /enter your address instead/i }))
+
+    expect(screen.getByPlaceholderText(/street address/i)).not.toBeDisabled()
+    expect(screen.getByRole('button', { name: /^search$/i })).not.toBeDisabled()
+  })
+})
+
+describe('chamber/mode switching regression', () => {
+  it('disables chamber radios and the mode toggle while a search is in flight, and re-enables them after', async () => {
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'California')
+    await user.type(screen.getByPlaceholderText(/district number/i), '12')
+
+    const { promise, resolve } = deferred<typeof REP[]>()
+    vi.mocked(getRepresentatives).mockReturnValueOnce(promise)
+
+    await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+    expect(screen.getByRole('radio', { name: 'Representatives' })).toBeDisabled()
+    expect(screen.getByRole('radio', { name: 'Senators' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /enter your address instead/i })).toBeDisabled()
+
+    resolve([REP])
+
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Representatives' })).not.toBeDisabled())
+    expect(screen.getByRole('radio', { name: 'Senators' })).not.toBeDisabled()
+    expect(screen.getByRole('button', { name: /enter your address instead/i })).not.toBeDisabled()
+  })
+})
+
+describe('search flows', () => {
+  it('submits a senators-by-state search and renders the results', async () => {
+    vi.mocked(getSenators).mockResolvedValueOnce([SENATOR])
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    await user.click(screen.getByRole('radio', { name: 'Senators' }))
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'California')
+    await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+    expect(getSenators).toHaveBeenCalledWith('CA')
+    expect(await screen.findByText('John Smith')).toBeInTheDocument()
+  })
+
+  it('submits a representatives-by-district search', async () => {
+    vi.mocked(getRepresentatives).mockResolvedValueOnce([REP])
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'California')
+    await user.type(screen.getByPlaceholderText(/district number/i), '12')
+    await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+    expect(getRepresentatives).toHaveBeenCalledWith('CA', 12)
+    expect(await screen.findByText('Jane Doe')).toBeInTheDocument()
+  })
+
+  it('submits a representatives-by-address search by resolving the district first', async () => {
+    vi.mocked(getDistrict).mockResolvedValueOnce({ state: 'CA', district: 7 })
+    vi.mocked(getRepresentatives).mockResolvedValueOnce([REP])
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    await user.click(screen.getByRole('button', { name: /enter your address instead/i }))
+    await user.type(screen.getByPlaceholderText(/street address/i), '1 Main St, San Francisco, CA')
+    await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+    await waitFor(() => expect(getDistrict).toHaveBeenCalledWith('1 Main St, San Francisco, CA'))
+    expect(getRepresentatives).toHaveBeenCalledWith('CA', 7)
+  })
+
+  it('renders the error message from a thrown CdServerError', async () => {
+    vi.mocked(getSenators).mockRejectedValueOnce(new CdServerError('boom'))
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    await user.click(screen.getByRole('radio', { name: 'Senators' }))
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'California')
+    await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('boom')
+  })
+
+  it('renders "No results found." for an empty result set', async () => {
+    vi.mocked(getSenators).mockResolvedValueOnce([])
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    await user.click(screen.getByRole('radio', { name: 'Senators' }))
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'California')
+    await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+    expect(await screen.findByText('No results found.')).toBeInTheDocument()
+  })
+})
