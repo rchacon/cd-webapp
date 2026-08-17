@@ -114,6 +114,42 @@ describe('chamber/mode switching regression', () => {
   })
 })
 
+describe('district number input constraints', () => {
+  it('constrains to 1..seats and hints the range for a multi-seat state', async () => {
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'California')
+
+    const districtInput = screen.getByPlaceholderText('District number (1–52)')
+    expect(districtInput).toHaveAttribute('min', '1')
+    expect(districtInput).toHaveAttribute('max', '52')
+  })
+
+  it('constrains to exactly 0 and hints at-large for a single-seat state', async () => {
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'Puerto Rico')
+
+    const districtInput = screen.getByPlaceholderText('District number (0 for at-large)')
+    expect(districtInput).toHaveAttribute('min', '0')
+    expect(districtInput).toHaveAttribute('max', '0')
+  })
+
+  it('has no min/max constraint before a state is selected', async () => {
+    render(<LookupForm />)
+
+    const districtInput = await screen.findByPlaceholderText('District number')
+    expect(districtInput).toHaveAttribute('min', '0')
+    expect(districtInput).not.toHaveAttribute('max')
+  })
+})
+
 describe('search flows', () => {
   it('submits a senators-by-state search and renders the results', async () => {
     vi.mocked(getSenators).mockResolvedValueOnce([SENATOR])
