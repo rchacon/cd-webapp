@@ -267,3 +267,19 @@ describe('search flows', () => {
     expect(await screen.findByText('No results found.')).toBeInTheDocument()
   })
 })
+
+describe('member card rendering', () => {
+  it('falls back to firstName when nickname is an empty string, not just null', async () => {
+    vi.mocked(getSenators).mockResolvedValueOnce([{ ...SENATOR, nickname: '', firstName: 'Jonathan' }])
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    await user.click(screen.getByRole('radio', { name: 'Senators' }))
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'California')
+    await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+    expect(await screen.findByText('Jonathan Smith')).toBeInTheDocument()
+  })
+})

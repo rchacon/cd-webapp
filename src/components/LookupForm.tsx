@@ -26,7 +26,7 @@ function errorMessage(err: unknown): string {
 }
 
 function formatMemberName(member: Member): string {
-  return [member.nickname ?? member.firstName, member.middleName, member.lastName, member.suffix]
+  return [member.nickname || member.firstName, member.middleName, member.lastName, member.suffix]
     .filter(Boolean)
     .join(' ')
 }
