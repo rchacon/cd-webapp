@@ -64,9 +64,9 @@ function MemberCard({ member }: { member: Representative | Senator }) {
 const inputClass =
   'w-full rounded-lg border border-white/20 bg-white px-3 py-2 text-navy-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/50'
 const radioLabelClass =
-  'flex cursor-pointer items-center gap-2 rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-white has-[:checked]:border-blue-400 has-[:checked]:bg-blue-500/20'
+  'flex cursor-pointer items-center gap-2 rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-white has-[:checked]:border-blue-400 has-[:checked]:bg-blue-500/20 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50'
 const toggleButtonClass =
-  'text-sm font-medium text-blue-300 underline decoration-blue-300/40 underline-offset-4 transition-colors hover:text-blue-200'
+  'text-sm font-medium text-blue-300 underline decoration-blue-300/40 underline-offset-4 transition-colors hover:text-blue-200 disabled:cursor-not-allowed disabled:opacity-60'
 const submitButtonClass =
   'rounded-full bg-blue-500 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-60'
 
@@ -159,6 +159,7 @@ export function LookupForm() {
                 setChamber('representatives')
                 resetStatus()
               }}
+              disabled={isLoading}
               className="accent-blue-400"
             />
             Representatives
@@ -173,6 +174,7 @@ export function LookupForm() {
                 setChamber('senators')
                 resetStatus()
               }}
+              disabled={isLoading}
               className="accent-blue-400"
             />
             Senators
@@ -207,6 +209,7 @@ export function LookupForm() {
                 setRepMode((m) => (m === 'district' ? 'address' : 'district'))
                 resetStatus()
               }}
+              disabled={isLoading}
               className={toggleButtonClass}
             >
               {repMode === 'district'
