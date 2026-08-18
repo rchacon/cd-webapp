@@ -5,9 +5,9 @@ function App() {
   const { displayName, isLoading, login, logout } = useAuth()
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-navy-900 to-navy-950">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-navy-900 to-navy-950">
       <header className="flex items-center justify-between gap-4 px-6 py-4">
-        <div className="flex items-center gap-3">
+        <a href="https://civicdog.com" className="flex items-center gap-3">
           <picture>
             <source srcSet="/logo/civicdog-mark-white-bg.webp" type="image/webp" />
             <img
@@ -22,7 +22,7 @@ function App() {
             <span className="text-white">Civic</span>
             <span className="text-blue-400">Dog</span>
           </span>
-        </div>
+        </a>
 
         {!isLoading &&
           (displayName ? (
@@ -50,9 +50,13 @@ function App() {
           ))}
       </header>
 
-      <main className="px-6 pb-16">
+      <main className="flex-1 px-6 pb-16">
         <LookupForm />
       </main>
+
+      <footer className="border-t border-white/10 px-6 py-6 text-xs text-blue-300">
+        &copy; {new Date().getFullYear()} CivicDog. All rights reserved.
+      </footer>
     </div>
   )
 }
