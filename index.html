@@ -2,6 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Mobile browsers restore a page's last scroll position on revisit, landing
+      // below the header/logo instead of at the top. Must run this early, before
+      // main.tsx's deferred module script -- by then some browsers have already
+      // applied their native scroll restoration.
+      if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual'
+      }
+      window.scrollTo(0, 0)
+    </script>
     <link rel="icon" type="image/png" href="/favicon-32.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
