@@ -16,6 +16,22 @@ function makeJwt(claims: Record<string, unknown>): string {
   return `${base64UrlEncodeJson({ alg: 'none', typ: 'JWT' })}.${base64UrlEncodeJson(claims)}.`
 }
 
+function makeSession(overrides: {
+  name?: string
+  accessToken?: string
+  refreshToken?: string
+  expiresAt?: number
+} = {}) {
+  const name = overrides.name ?? 'Ada'
+  return {
+    idToken: makeJwt({ given_name: name }),
+    accessToken: overrides.accessToken ?? 'at-1',
+    refreshToken: overrides.refreshToken ?? 'rt-1',
+    expiresAt: overrides.expiresAt ?? Date.now() + 60 * 60 * 1000,
+    displayName: name,
+  }
+}
+
 vi.mock('../../src/auth/config', async () => {
   const actual = await vi.importActual<typeof import('../../src/auth/config')>('../../src/auth/config')
   return {
@@ -52,13 +68,7 @@ afterEach(() => {
 
 describe('initFromStoredSession', () => {
   it('loads a fresh-enough stored session without refreshing', async () => {
-    const session = {
-      idToken: makeJwt({ given_name: 'Ada' }),
-      accessToken: 'at-1',
-      refreshToken: 'rt-1',
-      expiresAt: Date.now() + 60 * 60 * 1000,
-      displayName: 'Ada',
-    }
+    const session = makeSession()
     localStorage.setItem(SESSION_KEY, JSON.stringify(session))
 
     const { useAuth } = await import('../../src/auth/session')
@@ -73,13 +83,7 @@ describe('initFromStoredSession', () => {
   })
 
   it('immediately refreshes a near-expiry stored session on mount', async () => {
-    const session = {
-      idToken: makeJwt({ given_name: 'Ada' }),
-      accessToken: 'at-1',
-      refreshToken: 'rt-1',
-      expiresAt: Date.now() + 60 * 1000,
-      displayName: 'Ada',
-    }
+    const session = makeSession({ expiresAt: Date.now() + 60 * 1000 })
     localStorage.setItem(SESSION_KEY, JSON.stringify(session))
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,
@@ -156,13 +160,7 @@ describe('handleCallback', () => {
     window.history.replaceState(null, '', '/callback?code=abc123&state=wrong')
     sessionStorage.setItem(VERIFIER_KEY, 'verifier-1')
     sessionStorage.setItem(STATE_KEY, 'xyz789')
-    const existing = {
-      idToken: makeJwt({ given_name: 'Bob' }),
-      accessToken: 'at-existing',
-      refreshToken: 'rt-existing',
-      expiresAt: Date.now() + 60 * 60 * 1000,
-      displayName: 'Bob',
-    }
+    const existing = makeSession({ name: 'Bob', accessToken: 'at-existing', refreshToken: 'rt-existing' })
     localStorage.setItem(SESSION_KEY, JSON.stringify(existing))
 
     const { useAuth } = await import('../../src/auth/session')
@@ -233,13 +231,7 @@ describe('handleCallback', () => {
 describe('scheduled token refresh', () => {
   it('refreshes tokens shortly before expiry and persists the new session', async () => {
     vi.useFakeTimers()
-    const initialSession = {
-      idToken: makeJwt({ given_name: 'Ada' }),
-      accessToken: 'at-1',
-      refreshToken: 'rt-1',
-      expiresAt: Date.now() + 10 * 60 * 1000,
-      displayName: 'Ada',
-    }
+    const initialSession = makeSession({ expiresAt: Date.now() + 10 * 60 * 1000 })
     localStorage.setItem(SESSION_KEY, JSON.stringify(initialSession))
 
     vi.mocked(fetch).mockResolvedValueOnce({
@@ -273,13 +265,7 @@ describe('scheduled token refresh', () => {
 
   it('clears the session when a scheduled refresh fails', async () => {
     vi.useFakeTimers()
-    const initialSession = {
-      idToken: makeJwt({ given_name: 'Ada' }),
-      accessToken: 'at-1',
-      refreshToken: 'rt-1',
-      expiresAt: Date.now() + 10 * 60 * 1000,
-      displayName: 'Ada',
-    }
+    const initialSession = makeSession({ expiresAt: Date.now() + 10 * 60 * 1000 })
     localStorage.setItem(SESSION_KEY, JSON.stringify(initialSession))
     vi.mocked(fetch).mockRejectedValueOnce(new Error('network down'))
 
@@ -314,13 +300,7 @@ describe('handleStorageEvent', () => {
   })
 
   it('logs out when the session key is cleared in another tab', async () => {
-    const session = {
-      idToken: makeJwt({ given_name: 'Ada' }),
-      accessToken: 'at-1',
-      refreshToken: 'rt-1',
-      expiresAt: Date.now() + 60 * 60 * 1000,
-      displayName: 'Ada',
-    }
+    const session = makeSession()
     localStorage.setItem(SESSION_KEY, JSON.stringify(session))
 
     const { useAuth } = await import('../../src/auth/session')
@@ -347,13 +327,7 @@ describe('handleStorageEvent', () => {
     render(<Probe />)
     await waitFor(() => expect(screen.getByTestId('name')).toHaveTextContent('none'))
 
-    const nextSession = {
-      idToken: makeJwt({ given_name: 'Grace' }),
-      accessToken: 'at-2',
-      refreshToken: 'rt-2',
-      expiresAt: Date.now() + 60 * 60 * 1000,
-      displayName: 'Grace',
-    }
+    const nextSession = makeSession({ name: 'Grace', accessToken: 'at-2', refreshToken: 'rt-2' })
     window.dispatchEvent(
       new StorageEvent('storage', {
         key: SESSION_KEY,
@@ -366,13 +340,7 @@ describe('handleStorageEvent', () => {
   })
 
   it('treats malformed JSON as a logout rather than throwing', async () => {
-    const session = {
-      idToken: makeJwt({ given_name: 'Ada' }),
-      accessToken: 'at-1',
-      refreshToken: 'rt-1',
-      expiresAt: Date.now() + 60 * 60 * 1000,
-      displayName: 'Ada',
-    }
+    const session = makeSession()
     localStorage.setItem(SESSION_KEY, JSON.stringify(session))
 
     const { useAuth } = await import('../../src/auth/session')
@@ -426,13 +394,7 @@ describe('login', () => {
 
 describe('logout', () => {
   it('clears the session and calls buildLogoutUrl', async () => {
-    const session = {
-      idToken: makeJwt({ given_name: 'Ada' }),
-      accessToken: 'at-1',
-      refreshToken: 'rt-1',
-      expiresAt: Date.now() + 60 * 60 * 1000,
-      displayName: 'Ada',
-    }
+    const session = makeSession()
     localStorage.setItem(SESSION_KEY, JSON.stringify(session))
 
     const user = userEvent.setup()
