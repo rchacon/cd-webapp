@@ -25,15 +25,27 @@ vi.mock('../../src/auth/config', async () => {
   }
 })
 
+// session.ts's ensureInitialized() registers a window 'storage' listener once per
+// module instance with no matching removeEventListener, and vi.resetModules() only
+// clears the module cache, not existing DOM listener registrations -- without this,
+// every test in this file leaks a listener bound to a dead module's closure onto the
+// shared jsdom window, each capable of independently re-arming scheduleRefresh().
+let addEventListenerSpy: ReturnType<typeof vi.spyOn>
+
 beforeEach(() => {
   vi.resetModules()
   localStorage.clear()
   sessionStorage.clear()
   window.history.replaceState(null, '', '/')
   vi.stubGlobal('fetch', vi.fn())
+  addEventListenerSpy = vi.spyOn(window, 'addEventListener')
 })
 
 afterEach(() => {
+  for (const [type, listener] of addEventListenerSpy.mock.calls) {
+    if (type === 'storage') window.removeEventListener('storage', listener as EventListenerOrEventListenerObject)
+  }
+  addEventListenerSpy.mockRestore()
   vi.useRealTimers()
   vi.unstubAllGlobals()
 })
