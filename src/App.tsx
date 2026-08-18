@@ -5,7 +5,7 @@ function App() {
   const { displayName, isLoading, login, logout } = useAuth()
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-navy-900 to-navy-950">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-navy-900 to-navy-950">
       <header className="flex items-center justify-between gap-4 px-6 py-4">
         <a href="https://civicdog.com" className="flex items-center gap-3">
           <picture>
@@ -50,7 +50,7 @@ function App() {
           ))}
       </header>
 
-      <main className="px-6 pb-16">
+      <main className="flex-1 px-6 pb-16">
         <LookupForm />
       </main>
 
