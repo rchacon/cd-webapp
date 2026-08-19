@@ -96,7 +96,7 @@ describe('chamber/mode switching regression', () => {
     const stateSelect = await screen.findByRole('combobox')
     await waitFor(() => expect(stateSelect).not.toBeDisabled())
     await user.selectOptions(stateSelect, 'California')
-    await user.type(screen.getByPlaceholderText(/district number/i), '12')
+    await user.type(screen.getByPlaceholderText(/district/i), '12')
 
     const { promise, resolve } = deferred<typeof REP[]>()
     vi.mocked(getRepresentatives).mockReturnValueOnce(promise)
@@ -137,7 +137,7 @@ describe('district number input constraints', () => {
     await waitFor(() => expect(stateSelect).not.toBeDisabled())
     await user.selectOptions(stateSelect, 'California')
 
-    const districtInput = screen.getByPlaceholderText('District number (1–52)')
+    const districtInput = screen.getByPlaceholderText('District (1–52)')
     expect(districtInput).toHaveAttribute('min', '1')
     expect(districtInput).toHaveAttribute('max', '52')
   })
@@ -150,7 +150,7 @@ describe('district number input constraints', () => {
     await waitFor(() => expect(stateSelect).not.toBeDisabled())
     await user.selectOptions(stateSelect, 'Puerto Rico')
 
-    const districtInput = screen.getByPlaceholderText('District number (0 for at-large)')
+    const districtInput = screen.getByPlaceholderText('District (0 for at-large)')
     expect(districtInput).toHaveAttribute('min', '0')
     expect(districtInput).toHaveAttribute('max', '0')
   })
@@ -162,17 +162,17 @@ describe('district number input constraints', () => {
     const stateSelect = await screen.findByRole('combobox')
     await waitFor(() => expect(stateSelect).not.toBeDisabled())
     await user.selectOptions(stateSelect, 'California')
-    await user.type(screen.getByPlaceholderText('District number (1–52)'), '45')
+    await user.type(screen.getByPlaceholderText('District (1–52)'), '45')
 
     await user.selectOptions(stateSelect, 'Puerto Rico')
 
-    expect(screen.getByPlaceholderText('District number (0 for at-large)')).toHaveValue(null)
+    expect(screen.getByPlaceholderText('District (0 for at-large)')).toHaveValue(null)
   })
 
   it('has no min/max constraint before a state is selected', async () => {
     render(<LookupForm />)
 
-    const districtInput = await screen.findByPlaceholderText('District number')
+    const districtInput = await screen.findByPlaceholderText('District')
     expect(districtInput).toHaveAttribute('min', '0')
     expect(districtInput).not.toHaveAttribute('max')
   })
@@ -218,7 +218,7 @@ describe('search flows', () => {
     const stateSelect = await screen.findByRole('combobox')
     await waitFor(() => expect(stateSelect).not.toBeDisabled())
     await user.selectOptions(stateSelect, 'California')
-    await user.type(screen.getByPlaceholderText(/district number/i), '12')
+    await user.type(screen.getByPlaceholderText(/district/i), '12')
     await user.click(screen.getByRole('button', { name: /^search$/i }))
 
     expect(getRepresentatives).toHaveBeenCalledWith('CA', 12)
@@ -325,7 +325,7 @@ describe('member card rendering', () => {
     const stateSelect = await screen.findByRole('combobox')
     await waitFor(() => expect(stateSelect).not.toBeDisabled())
     await user.selectOptions(stateSelect, 'California')
-    await user.type(screen.getByPlaceholderText('District number (1–52)'), '12')
+    await user.type(screen.getByPlaceholderText('District (1–52)'), '12')
     await user.click(screen.getByRole('button', { name: /^search$/i }))
 
     await screen.findByText('Jane Doe')
