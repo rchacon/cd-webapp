@@ -286,9 +286,9 @@ export function LookupForm() {
                   placeholder={
                     selectedState
                       ? isAtLargeState
-                        ? 'District number (0 for at-large)'
-                        : `District number (1–${selectedState.seats})`
-                      : 'District number'
+                        ? 'District (0 for at-large)'
+                        : `District (1–${selectedState.seats})`
+                      : 'District'
                   }
                   required
                   disabled={formDisabled}
