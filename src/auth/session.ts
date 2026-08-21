@@ -40,7 +40,9 @@ function loadSession(): StoredSession | null {
 }
 
 export function getIdToken(): string | null {
-  return loadSession()?.idToken ?? null
+  const session = loadSession()
+  if (!session || session.expiresAt <= Date.now()) return null
+  return session.idToken
 }
 
 function saveSession(session: StoredSession) {

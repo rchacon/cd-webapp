@@ -136,6 +136,15 @@ describe('getIdToken', () => {
 
     expect(getIdToken()).toBeNull()
   })
+
+  it('returns null when the stored idToken has expired', async () => {
+    const session = makeSession({ expiresAt: Date.now() - 1000 })
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+
+    const { getIdToken } = await import('../../src/auth/session')
+
+    expect(getIdToken()).toBeNull()
+  })
 })
 
 describe('handleCallback', () => {
