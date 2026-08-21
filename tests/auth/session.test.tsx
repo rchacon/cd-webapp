@@ -121,6 +121,23 @@ describe('initFromStoredSession', () => {
   })
 })
 
+describe('getIdToken', () => {
+  it('returns the idToken from a stored session', async () => {
+    const session = makeSession()
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+
+    const { getIdToken } = await import('../../src/auth/session')
+
+    expect(getIdToken()).toBe(session.idToken)
+  })
+
+  it('returns null when there is no stored session', async () => {
+    const { getIdToken } = await import('../../src/auth/session')
+
+    expect(getIdToken()).toBeNull()
+  })
+})
+
 describe('handleCallback', () => {
   it('exchanges the code for tokens on a successful /callback arrival', async () => {
     window.history.replaceState(null, '', '/callback?code=abc123&state=xyz789')

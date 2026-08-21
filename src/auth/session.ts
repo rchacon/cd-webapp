@@ -39,6 +39,10 @@ function loadSession(): StoredSession | null {
   }
 }
 
+export function getIdToken(): string | null {
+  return loadSession()?.idToken ?? null
+}
+
 function saveSession(session: StoredSession) {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session))
 }

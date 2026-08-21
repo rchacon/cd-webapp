@@ -1,3 +1,5 @@
+import { getIdToken } from '../auth/session'
+
 const CD_SERVER_URL = import.meta.env.VITE_CD_SERVER_URL ?? 'http://localhost:8000/graphql'
 
 export class CdServerError extends Error {}
@@ -12,11 +14,15 @@ async function graphqlRequest<T extends Record<string, unknown>, K extends keyof
   variables: Record<string, unknown>,
   field: K,
 ): Promise<NonNullable<T[K]>> {
+  const idToken = getIdToken()
   let response: Response
   try {
     response = await fetch(CD_SERVER_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+      },
       body: JSON.stringify({ query, variables }),
     })
   } catch {
