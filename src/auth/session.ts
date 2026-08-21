@@ -39,6 +39,12 @@ function loadSession(): StoredSession | null {
   }
 }
 
+export function getIdToken(): string | null {
+  const session = loadSession()
+  if (!session || session.expiresAt <= Date.now()) return null
+  return session.idToken
+}
+
 function saveSession(session: StoredSession) {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session))
 }

@@ -6,9 +6,15 @@ import {
   getRepresentatives,
   getSenators,
 } from '../../src/lib/cdServer'
+import { getIdToken } from '../../src/auth/session'
+
+vi.mock('../../src/auth/session', () => ({
+  getIdToken: vi.fn(),
+}))
 
 beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn())
+  vi.mocked(getIdToken).mockReturnValue(null)
 })
 
 afterEach(() => {
@@ -93,6 +99,44 @@ describe('getStates', () => {
 
     await expect(getStates()).rejects.toThrow(
       new CdServerError('Lookup service returned an error (status 200).'),
+    )
+  })
+})
+
+describe('Authorization header', () => {
+  it('attaches Authorization: Bearer <idToken> when an idToken is available', async () => {
+    vi.mocked(getIdToken).mockReturnValue('the-id-token')
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: { getStates: [] } }),
+    } as Response)
+
+    await getStates()
+
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:8000/graphql',
+      expect.objectContaining({
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer the-id-token' },
+      }),
+    )
+  })
+
+  it('sends no Authorization header when logged out (no idToken)', async () => {
+    vi.mocked(getIdToken).mockReturnValue(null)
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: { getStates: [] } }),
+    } as Response)
+
+    await getStates()
+
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:8000/graphql',
+      expect.objectContaining({
+        headers: { 'Content-Type': 'application/json' },
+      }),
     )
   })
 })
