@@ -116,16 +116,6 @@ describe('MemberDetailPage', () => {
     expect(screen.queryByText(/javascript:/)).not.toBeInTheDocument()
   })
 
-  it('links to the Congress.gov profile by bioguide id', async () => {
-    vi.mocked(getMember).mockResolvedValueOnce(MEMBER)
-    render(<MemberDetailPage bioguideId="K000401" />)
-
-    expect(await screen.findByRole('link', { name: /congress\.gov profile/i })).toHaveAttribute(
-      'href',
-      'https://www.congress.gov/member/K000401',
-    )
-  })
-
   it('flags a member who has left the current Congress', async () => {
     vi.mocked(getMember).mockResolvedValueOnce({ ...MEMBER, inOffice: false })
     render(<MemberDetailPage bioguideId="K000401" />)

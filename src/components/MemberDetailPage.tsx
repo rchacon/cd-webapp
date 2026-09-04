@@ -72,22 +72,16 @@ function MemberHeader({ member }: { member: MemberDetail }) {
             )}
             <span className="text-sm text-blue-100">{describeSeat(member)}</span>
           </div>
-          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-blue-100">
-            {member.phone && <span>{member.phone}</span>}
-            {website && (
-              <a href={website} target="_blank" rel="noreferrer" className={contactLinkClass}>
-                {displayUrl(website)}
-              </a>
-            )}
-            <a
-              href={`https://www.congress.gov/member/${encodeURIComponent(member.bioguideId)}`}
-              target="_blank"
-              rel="noreferrer"
-              className={contactLinkClass}
-            >
-              Congress.gov profile
-            </a>
-          </div>
+          {(member.phone || website) && (
+            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-blue-100">
+              {member.phone && <span>{member.phone}</span>}
+              {website && (
+                <a href={website} target="_blank" rel="noreferrer" className={contactLinkClass}>
+                  {displayUrl(website)}
+                </a>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
