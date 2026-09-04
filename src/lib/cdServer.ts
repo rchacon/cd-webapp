@@ -72,6 +72,17 @@ export interface Representative extends Member {
 }
 export type Senator = Member
 
+// The `getMember(bioguideId)` detail type: every `Member` field plus
+// `state` and `inOffice`, which the list resolvers' Representative/Senator
+// don't carry. Backs the deep-linkable member page -- a bookmark to a
+// since-departed member still resolves, with `inOffice: false`.
+export interface MemberDetail extends Member {
+  role: string
+  district: number | null
+  state: string
+  inOffice: boolean
+}
+
 export interface StateOption {
   abbr: string
   name: string
@@ -108,6 +119,14 @@ const GET_SENATORS_QUERY = `
   }
 `
 
+const GET_MEMBER_QUERY = `
+  query GetMember($bioguideId: String!) {
+    getMember(bioguideId: $bioguideId) {
+      bioguideId firstName middleName lastName nickname suffix role district state party phone website photoUrl inOffice
+    }
+  }
+`
+
 export async function getStates(): Promise<StateOption[]> {
   return graphqlRequest<{ getStates: StateOption[] }, 'getStates'>(GET_STATES_QUERY, {}, 'getStates')
 }
@@ -130,4 +149,12 @@ export async function getRepresentatives(state: string, district: number): Promi
 
 export async function getSenators(state: string): Promise<Senator[]> {
   return graphqlRequest<{ getSenators: Senator[] }, 'getSenators'>(GET_SENATORS_QUERY, { state }, 'getSenators')
+}
+
+export async function getMember(bioguideId: string): Promise<MemberDetail> {
+  return graphqlRequest<{ getMember: MemberDetail }, 'getMember'>(
+    GET_MEMBER_QUERY,
+    { bioguideId },
+    'getMember',
+  )
 }

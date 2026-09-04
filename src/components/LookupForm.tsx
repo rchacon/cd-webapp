@@ -5,11 +5,13 @@ import {
   getRepresentatives,
   getSenators,
   getStates,
-  type Member,
   type Representative,
   type Senator,
   type StateOption,
 } from '../lib/cdServer'
+import { errorMessage, formatMemberName, formatParty, isNonVotingRole } from '../lib/format'
+import { memberPath } from '../lib/router'
+import { RouterLink } from './RouterLink'
 
 type Chamber = 'representatives' | 'senators'
 type RepMode = 'district' | 'address'
@@ -29,56 +31,42 @@ type Status =
   | { kind: 'error'; message: string }
   | { kind: 'success'; members: Array<Representative | Senator> }
 
-function errorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message
-  return 'Something went wrong. Please try again.'
-}
-
-function formatMemberName(member: Member): string {
-  return [member.nickname || member.firstName, member.middleName, member.lastName, member.suffix]
-    .filter(Boolean)
-    .join(' ')
-}
-
-function isHttpUrl(url: string): boolean {
-  try {
-    return ['http:', 'https:'].includes(new URL(url).protocol)
-  } catch {
-    return false
-  }
-}
-
 function MemberCard({ member, chamber }: { member: Representative | Senator; chamber: Chamber }) {
   // The chamber that was actually searched is the authoritative signal for
   // whether `member` is a Representative -- not whether the GraphQL response
   // happens to include a `role` field, which could drift from this component
   // if the query strings in cdServer.ts ever change independently.
   const role = chamber === 'representatives' ? (member as Representative).role : null
+  // Delegates / the Resident Commissioner can't vote on floor passage, so
+  // "View voting record" would misrepresent what the detail page offers.
+  const cta = role && isNonVotingRole(role) ? 'View details' : 'View voting record'
+
   return (
-    <li className="rounded-2xl bg-white/10 p-5 text-left ring-1 ring-white/15">
-      <div className="flex items-center gap-4">
-        {member.photoUrl && (
-          <img src={member.photoUrl} alt="" className="h-16 w-16 rounded-full object-cover" />
-        )}
-        <div>
-          <p className="text-lg font-semibold text-white">{formatMemberName(member) || 'Unnamed'}</p>
-          {role && <p className="text-sm text-blue-300">{role}</p>}
-          {member.party && <p className="text-sm text-blue-100">{member.party}</p>}
+    <li>
+      <RouterLink
+        href={memberPath(member.bioguideId)}
+        className="group block rounded-2xl bg-white/10 p-5 text-left ring-1 ring-white/15 transition-colors hover:bg-white/15 hover:ring-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+      >
+        <div className="flex items-center gap-4">
+          {member.photoUrl && (
+            <img src={member.photoUrl} alt="" className="h-16 w-16 rounded-full object-cover" />
+          )}
+          <div>
+            <p className="text-lg font-semibold text-white">
+              {formatMemberName(member) || 'Unnamed'}
+            </p>
+            {role && <p className="text-sm text-blue-300">{role}</p>}
+            {member.party && <p className="text-sm text-blue-100">{formatParty(member.party)}</p>}
+          </div>
         </div>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-blue-100">
-        {member.phone && <span>{member.phone}</span>}
-        {member.website && isHttpUrl(member.website) && (
-          <a
-            href={member.website}
-            target="_blank"
-            rel="noreferrer"
-            className="underline decoration-blue-300/40 underline-offset-4 hover:text-blue-200"
-          >
-            Website
-          </a>
-        )}
-      </div>
+        {/* Contact details (phone, website) live on the detail page only:
+            the whole card is a single link, so a phone/URL sitting on it
+            reads as clickable when it isn't. One card, one action. */}
+        <p className="mt-4 flex items-center gap-1.5 border-t border-white/10 pt-3 text-sm font-semibold text-blue-300 group-hover:text-blue-200">
+          {cta}
+          <span aria-hidden="true">&rarr;</span>
+        </p>
+      </RouterLink>
     </li>
   )
 }

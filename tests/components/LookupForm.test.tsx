@@ -61,6 +61,7 @@ function deferred<T>() {
 beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(getStates).mockResolvedValue(STATES)
+  window.history.pushState({}, '', '/')
 })
 
 describe('address lookup availability regression', () => {
@@ -283,26 +284,9 @@ describe('member card rendering', () => {
     expect(await screen.findByText('Jonathan Smith')).toBeInTheDocument()
   })
 
-  it('renders a Website link for an http(s) URL', async () => {
-    vi.mocked(getSenators).mockResolvedValueOnce([{ ...SENATOR, website: 'https://example.gov' }])
-    const user = userEvent.setup()
-    render(<LookupForm />)
-
-    await user.click(screen.getByRole('radio', { name: 'Senators' }))
-    const stateSelect = await screen.findByRole('combobox')
-    await waitFor(() => expect(stateSelect).not.toBeDisabled())
-    await user.selectOptions(stateSelect, 'California')
-    await user.click(screen.getByRole('button', { name: /^search$/i }))
-
-    expect(await screen.findByRole('link', { name: 'Website' })).toHaveAttribute(
-      'href',
-      'https://example.gov',
-    )
-  })
-
-  it('does not render a Website link for a non-http(s) URL', async () => {
+  it('keeps contact details (phone, website) off the card -- one card, one action', async () => {
     vi.mocked(getSenators).mockResolvedValueOnce([
-      { ...SENATOR, website: 'javascript:alert(1)' },
+      { ...SENATOR, phone: '(202) 224-3553', website: 'https://example.gov' },
     ])
     const user = userEvent.setup()
     render(<LookupForm />)
@@ -314,7 +298,26 @@ describe('member card rendering', () => {
     await user.click(screen.getByRole('button', { name: /^search$/i }))
 
     await screen.findByText('John Smith')
-    expect(screen.queryByRole('link', { name: 'Website' })).not.toBeInTheDocument()
+    expect(screen.queryByText('example.gov')).not.toBeInTheDocument()
+    expect(screen.queryByText('(202) 224-3553')).not.toBeInTheDocument()
+  })
+
+  it('links the whole card to the member detail page and navigates on click', async () => {
+    vi.mocked(getSenators).mockResolvedValueOnce([SENATOR])
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    await user.click(screen.getByRole('radio', { name: 'Senators' }))
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'California')
+    await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+    const card = await screen.findByRole('link', { name: /John Smith/i })
+    expect(card).toHaveAttribute('href', '/member/B000000')
+
+    await user.click(card)
+    expect(window.location.pathname).toBe('/member/B000000')
   })
 
   it('renders the role for a representatives search', async () => {
@@ -345,5 +348,39 @@ describe('member card rendering', () => {
 
     await screen.findByText('John Smith')
     expect(screen.queryByText('Representative')).not.toBeInTheDocument()
+  })
+
+  it('offers "View voting record" for a Representative', async () => {
+    vi.mocked(getRepresentatives).mockResolvedValueOnce([REP])
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'California')
+    await user.type(screen.getByPlaceholderText('District (1–52)'), '12')
+    await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+    const card = await screen.findByRole('link', { name: /Jane Doe/i })
+    expect(card).toHaveTextContent('View voting record')
+    expect(card).not.toHaveTextContent('View details')
+  })
+
+  it('offers "View details" instead for a non-voting Delegate', async () => {
+    vi.mocked(getRepresentatives).mockResolvedValueOnce([
+      { ...REP, role: 'Delegate', firstName: 'Stacey', lastName: 'Plaskett' },
+    ])
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'California')
+    await user.type(screen.getByPlaceholderText('District (1–52)'), '12')
+    await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+    const card = await screen.findByRole('link', { name: /Stacey Plaskett/i })
+    expect(card).toHaveTextContent('View details')
+    expect(card).not.toHaveTextContent('View voting record')
   })
 })

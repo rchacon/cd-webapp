@@ -1,8 +1,11 @@
 import { useAuth } from './auth/session'
 import { LookupForm } from './components/LookupForm'
+import { MemberDetailPage } from './components/MemberDetailPage'
+import { useRoute } from './lib/router'
 
 function App() {
   const { displayName, isLoading, login, logout } = useAuth()
+  const route = useRoute()
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-navy-900 to-navy-950">
@@ -51,7 +54,11 @@ function App() {
       </header>
 
       <main className="flex-1 px-6 pb-16">
-        <LookupForm />
+        {route.name === 'member' ? (
+          <MemberDetailPage key={route.bioguideId} bioguideId={route.bioguideId} />
+        ) : (
+          <LookupForm />
+        )}
       </main>
 
       <footer className="border-t border-white/10 px-6 py-6 text-xs text-blue-300">

@@ -3,15 +3,28 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../src/App'
 import { useAuth } from '../src/auth/session'
+import { getMember } from '../src/lib/cdServer'
 
 vi.mock('../src/auth/session', () => ({ useAuth: vi.fn() }))
 vi.mock('../src/lib/cdServer', async () => {
   const actual = await vi.importActual<typeof import('../src/lib/cdServer')>('../src/lib/cdServer')
-  return { ...actual, getStates: vi.fn().mockResolvedValue([]) }
+  return {
+    ...actual,
+    getStates: vi.fn().mockResolvedValue([]),
+    getMember: vi.fn(),
+  }
 })
+
+const LOGGED_OUT = {
+  displayName: null,
+  isLoading: false,
+  login: vi.fn(),
+  logout: vi.fn(),
+}
 
 beforeEach(() => {
   vi.clearAllMocks()
+  window.history.pushState({}, '', '/')
 })
 
 describe('App', () => {
@@ -85,5 +98,40 @@ describe('App', () => {
     expect(
       screen.getByText(`© ${new Date().getFullYear()} CivicDog. All rights reserved.`),
     ).toBeInTheDocument()
+  })
+
+  it('renders the lookup form at /', () => {
+    vi.mocked(useAuth).mockReturnValue(LOGGED_OUT)
+    render(<App />)
+
+    expect(screen.getByRole('heading', { name: /find your representatives/i })).toBeInTheDocument()
+  })
+
+  it('renders the member detail page at /member/:bioguideId', async () => {
+    vi.mocked(useAuth).mockReturnValue(LOGGED_OUT)
+    vi.mocked(getMember).mockResolvedValueOnce({
+      bioguideId: 'K000401',
+      firstName: 'Kevin',
+      middleName: null,
+      lastName: 'Kiley',
+      nickname: null,
+      suffix: null,
+      role: 'Representative',
+      district: 3,
+      state: 'CA',
+      party: 'Republican',
+      phone: null,
+      website: null,
+      photoUrl: null,
+      inOffice: true,
+    })
+    window.history.pushState({}, '', '/member/K000401')
+    render(<App />)
+
+    expect(getMember).toHaveBeenCalledWith('K000401')
+    expect(await screen.findByRole('heading', { name: 'Kevin Kiley' })).toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: /find your representatives/i }),
+    ).not.toBeInTheDocument()
   })
 })

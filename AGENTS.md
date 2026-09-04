@@ -1,7 +1,13 @@
 ## Status
 
 A representatives/senators lookup form (`src/components/LookupForm.tsx`)
-is the main page content — the earlier "coming soon" placeholder is gone.
+is the landing page. Each result card links to that member's detail page
+(`src/components/MemberDetailPage.tsx`, backed by cd-server's
+`getMember(bioguideId)` → `MemberDetail`, which adds `state`/`inOffice`
+over the list resolvers' `Representative`/`Senator`). The detail page
+currently shows identity + contact + an `inOffice: false` banner for a
+departed member; the plain-language voting-record search from the UX
+mockup is the next piece and not built yet.
 Plus a minimal Cognito login/logout affordance in the header
 (hand-rolled Authorization Code + PKCE flow via the Web Crypto API — no
 `oidc-client-ts`/`react-oidc-context`, since those libraries' issuer
@@ -13,10 +19,19 @@ overrides anyway). See `src/auth/`. Tokens live in `localStorage` (so the
 validity) are silently renewed via the refresh token (30-day validity) on
 a scheduled timer — see `scheduleRefresh` in `src/auth/session.ts`.
 
-`/callback` is handled via a `window.location.pathname` check in
-`src/auth/session.ts`, not a routing library — it's the only non-`/` path
-in the app. Don't add `react-router` for this alone; revisit if a second
-real route appears.
+Routing is hand-rolled in `src/lib/router.ts` (`useRoute`/`navigate`/
+`parseRoute`, ~50 lines over `useSyncExternalStore` + `history.pushState`
++ `popstate`), same hand-rolled-over-library posture as `src/auth/` and
+`src/lib/cdServer.ts`. Two real screens: `/` (lookup form) and
+`/member/:bioguideId` (detail page). `RouterLink` (`src/components/`)
+wraps `<a>` so plain left-clicks transition client-side while
+modified/middle clicks fall through to the browser. `/callback` has no
+route of its own: `parseRoute` doesn't match it, so it falls through to
+the home screen and `LookupForm` renders (firing `getStates()`) during
+the OAuth code exchange — same as before this app had a router.
+`src/auth/session.ts` then handles the exchange and `history.replaceState`s
+back to `/`. Reach for `react-router` only if a third screen with nested
+routes / real URL params shows up.
 
 Cognito infra (User Pool, the `cd-webapp-dev`/`cd-webapp-prod` app
 clients, `auth.civicdog.com` Managed Login domain) is provisioned in
@@ -26,14 +41,15 @@ separate Terraform toggle. Local dev needs a `.env.local` (see
 `.env.example`) with the dev client's values; prod's are set as the
 Amplify app's build env vars.
 
-`cd-server` (a GraphQL API, in the `cd-platform` monorepo) exists now but
-is **local-dev-only** — no deployment exists for it yet (no Terraform
-resource). Run it locally via `cd-platform`'s `make start-server` (plus
+`cd-server` (a GraphQL API, in the `cd-platform` monorepo) is deployed at
+`https://server.civicdog.com/graphql`, which prod is wired to via the
+Amplify app's `VITE_CD_SERVER_URL` build env var. `src/lib/cdServer.ts`'s
+default is still `http://localhost:8000/graphql` for local dev — run
+cd-server locally via `cd-platform`'s `make start-server` (plus
 `make start-api` for cd-api, which cd-server calls out to). The lookup
-form talks to it through a hand-rolled GraphQL client in
-`src/lib/cdServer.ts` (`VITE_CD_SERVER_URL`, default
-`http://localhost:8000/graphql`) — no Apollo/urql, same hand-rolled-over-
-library posture as `src/auth/`. Introspection is disabled server-side, so
+form and member detail page talk to it through a hand-rolled GraphQL
+client in `src/lib/cdServer.ts` — no Apollo/urql, same
+hand-rolled-over-library posture as `src/auth/`. Introspection is disabled server-side, so
 the query strings/types in `cdServer.ts` are hand-written against the
 schema, not generated — keep them in sync manually if `cd-server`'s
 schema changes. `getStates` and `getDistrict` are both real backend
