@@ -67,7 +67,19 @@ export function VotingRecord({ member }: { member: MemberDetail }) {
     )
   }
 
-  return <VoteSearch bioguideId={member.bioguideId} name={name} />
+  if (member.role === 'Representative') {
+    return <VoteSearch bioguideId={member.bioguideId} name={name} />
+  }
+
+  // Any other / unexpected role string: no assumptions, no query.
+  return (
+    <Section>
+      <h2 className="text-xl font-semibold text-white">Voting record</h2>
+      <p className="mt-2 max-w-prose text-sm text-blue-100">
+        No floor voting record is available for {name}.
+      </p>
+    </Section>
+  )
 }
 
 function Section({ children }: { children: ReactNode }) {
