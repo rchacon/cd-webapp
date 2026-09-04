@@ -61,3 +61,101 @@ export function telHref(phone: string): string {
   if (digits.length === 11 && digits.startsWith('1')) return `tel:+${digits}`
   return `tel:${digits}`
 }
+
+// --- bill / vote formatting (searchBills on the member detail page) ---
+
+function ordinal(n: number): string {
+  const tens = n % 100
+  if (tens >= 11 && tens <= 13) return `${n}th`
+  return `${n}${['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`
+}
+
+export function congressLabel(congress: number): string {
+  return `${ordinal(congress)} Congress`
+}
+
+// cd-api sends the bill type uppercased and dot-less ("HR", "S", "HJRES");
+// render it Congress.gov-style ("H.R.", "S.", "H.J.Res.").
+const BILL_TYPE_LABELS: Record<string, string> = {
+  HR: 'H.R.',
+  S: 'S.',
+  HJRES: 'H.J.Res.',
+  SJRES: 'S.J.Res.',
+  HCONRES: 'H.Con.Res.',
+  SCONRES: 'S.Con.Res.',
+  HRES: 'H.Res.',
+  SRES: 'S.Res.',
+}
+export function formatBillId(billType: string, billNumber: number): string {
+  return `${BILL_TYPE_LABELS[billType.toUpperCase()] ?? `${billType}.`} ${billNumber}`
+}
+
+const CONGRESS_GOV_BILL_PATHS: Record<string, string> = {
+  HR: 'house-bill',
+  S: 'senate-bill',
+  HJRES: 'house-joint-resolution',
+  SJRES: 'senate-joint-resolution',
+  HCONRES: 'house-concurrent-resolution',
+  SCONRES: 'senate-concurrent-resolution',
+  HRES: 'house-resolution',
+  SRES: 'senate-resolution',
+}
+export function congressGovBillUrl(
+  congress: number,
+  billType: string,
+  billNumber: number,
+): string | null {
+  const path = CONGRESS_GOV_BILL_PATHS[billType.toUpperCase()]
+  if (!path) return null
+  return `https://www.congress.gov/bill/${ordinal(congress)}-congress/${path}/${billNumber}`
+}
+
+export type VoteTone = 'yea' | 'nay' | 'present' | 'none'
+
+// cd-lib RollCallVote.vote_cast is "YEA" | "NAY" | "PRESENT" | "NOT_VOTING".
+export function voteTone(voteCast: string): VoteTone {
+  switch (voteCast.toUpperCase()) {
+    case 'YEA':
+      return 'yea'
+    case 'NAY':
+      return 'nay'
+    case 'PRESENT':
+      return 'present'
+    default:
+      return 'none'
+  }
+}
+export function formatVoteCast(voteCast: string): string {
+  switch (voteCast.toUpperCase()) {
+    case 'YEA':
+      return 'Voted Yea'
+    case 'NAY':
+      return 'Voted Nay'
+    case 'PRESENT':
+      return 'Voted Present'
+    case 'NOT_VOTING':
+      return 'Did not vote'
+    default:
+      return voteCast
+  }
+}
+
+// "2025-06-12" -> "June 12, 2025". Parsed at local midnight so the day
+// doesn't slip a date in a behind-UTC timezone.
+export function formatVoteDate(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+// CRS bill summaries arrive as HTML. Flatten to text for a preview --
+// DOMParser with 'text/html' never runs scripts, so upstream markup is
+// safe to feed through.
+export function plainText(html: string): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  return (doc.body.textContent ?? '').replace(/\s+/g, ' ').trim()
+}
+
+export function truncate(text: string, max: number): string {
+  return text.length <= max ? text : `${text.slice(0, max).trimEnd()}…`
+}

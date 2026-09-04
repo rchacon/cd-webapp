@@ -72,6 +72,15 @@ describe('MemberDetailPage', () => {
     expect(screen.getByText('U.S. Representative · CA-3')).toBeInTheDocument()
   })
 
+  it('renders the voting-record search for a representative', async () => {
+    vi.mocked(getMember).mockResolvedValueOnce(MEMBER)
+    render(<MemberDetailPage bioguideId="K000401" />)
+
+    expect(
+      await screen.findByRole('heading', { name: /How did Kevin Kiley vote on/i }),
+    ).toBeInTheDocument()
+  })
+
   it('describes an at-large representative as "at-large" rather than district 0', async () => {
     vi.mocked(getMember).mockResolvedValueOnce({
       ...MEMBER,

@@ -9,6 +9,7 @@ import {
   telHref,
 } from '../lib/format'
 import { RouterLink } from './RouterLink'
+import { VotingRecord } from './VotingRecord'
 
 type State =
   | { kind: 'loading' }
@@ -145,14 +146,7 @@ export function MemberDetailPage({ bioguideId }: { bioguideId: string }) {
         {state.kind === 'loaded' && (
           <>
             <MemberHeader member={state.member} />
-            <section className="mt-8">
-              <h2 className="text-xl font-semibold text-white">
-                How did {formatMemberName(state.member) || 'this member'} vote on…
-              </h2>
-              <p className="mt-2 text-sm text-blue-100">
-                Searching this member's voting record by topic is coming soon.
-              </p>
-            </section>
+            <VotingRecord member={state.member} />
           </>
         )}
       </div>
