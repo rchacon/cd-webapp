@@ -6,6 +6,7 @@ import {
   getRepresentatives,
   getSenators,
   getMember,
+  searchBills,
 } from '../../src/lib/cdServer'
 import { getIdToken } from '../../src/auth/session'
 
@@ -303,6 +304,55 @@ describe('getMember', () => {
 
     await expect(getMember('X000000')).rejects.toThrow(
       new CdServerError('cd-api request failed: 404'),
+    )
+  })
+})
+
+describe('searchBills', () => {
+  const BILL = {
+    billKey: '119-hr-2056',
+    congress: 119,
+    billType: 'HR',
+    billNumber: 2056,
+    title: 'District of Columbia Federal Immigration Compliance Act of 2025',
+    policyArea: 'Immigration',
+    crsSummary: '<p>Does a thing.</p>',
+    votes: [
+      { voteCast: 'NAY', voteQuestion: 'On Passage', result: 'Passed', voteDate: '2025-06-12' },
+    ],
+  }
+
+  it('returns the parsed bills on success', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: { searchBills: [BILL] } }),
+    } as Response)
+
+    const result = await searchBills('O000172', 'immigration enforcement')
+
+    expect(result).toEqual([BILL])
+  })
+
+  it('returns an empty array when nothing matched (not an error)', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: { searchBills: [] } }),
+    } as Response)
+
+    await expect(searchBills('O000172', 'nothing relevant')).resolves.toEqual([])
+  })
+
+  it('surfaces a Bedrock outage (cd-api 503) as a CdServerError', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ errors: [{ message: 'cd-api request failed: 503' }] }),
+    } as Response)
+
+    await expect(searchBills('O000172', 'immigration')).rejects.toThrow(
+      new CdServerError('cd-api request failed: 503'),
     )
   })
 })

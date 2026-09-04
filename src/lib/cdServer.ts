@@ -83,6 +83,27 @@ export interface MemberDetail extends Member {
   inOffice: boolean
 }
 
+// `searchBills`: bills matching a plain-language topic, each merged with
+// the queried member's roll-call votes on it. A matched bill the member
+// never voted on comes back with `votes: []` -- a distinct, first-class
+// state, not an omission.
+export interface BillVote {
+  voteCast: string // YEA | NAY | PRESENT | NOT_VOTING
+  voteQuestion: string
+  result: string
+  voteDate: string // ISO date, e.g. "2025-06-12"
+}
+export interface Bill {
+  billKey: string
+  congress: number
+  billType: string // uppercase, dot-less: "HR", "S", "HJRES", ...
+  billNumber: number
+  title: string | null
+  policyArea: string | null
+  crsSummary: string | null // HTML
+  votes: BillVote[]
+}
+
 export interface StateOption {
   abbr: string
   name: string
@@ -127,6 +148,15 @@ const GET_MEMBER_QUERY = `
   }
 `
 
+const SEARCH_BILLS_QUERY = `
+  query SearchBills($bioguideId: String!, $q: String!) {
+    searchBills(bioguideId: $bioguideId, q: $q) {
+      billKey congress billType billNumber title policyArea crsSummary
+      votes { voteCast voteQuestion result voteDate }
+    }
+  }
+`
+
 export async function getStates(): Promise<StateOption[]> {
   return graphqlRequest<{ getStates: StateOption[] }, 'getStates'>(GET_STATES_QUERY, {}, 'getStates')
 }
@@ -156,5 +186,13 @@ export async function getMember(bioguideId: string): Promise<MemberDetail> {
     GET_MEMBER_QUERY,
     { bioguideId },
     'getMember',
+  )
+}
+
+export async function searchBills(bioguideId: string, q: string): Promise<Bill[]> {
+  return graphqlRequest<{ searchBills: Bill[] }, 'searchBills'>(
+    SEARCH_BILLS_QUERY,
+    { bioguideId, q },
+    'searchBills',
   )
 }
