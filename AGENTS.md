@@ -25,11 +25,13 @@ Routing is hand-rolled in `src/lib/router.ts` (`useRoute`/`navigate`/
 `src/lib/cdServer.ts`. Two real screens: `/` (lookup form) and
 `/member/:bioguideId` (detail page). `RouterLink` (`src/components/`)
 wraps `<a>` so plain left-clicks transition client-side while
-modified/middle clicks fall through to the browser. `/callback` never
-reaches `parseRoute` — `src/auth/session.ts` consumes it via a
-`window.location.pathname` check and `history.replaceState`s back to `/`
-before React renders. Reach for `react-router` only if a third screen
-with nested routes / real URL params shows up.
+modified/middle clicks fall through to the browser. `/callback` has no
+route of its own: `parseRoute` doesn't match it, so it falls through to
+the home screen and `LookupForm` renders (firing `getStates()`) during
+the OAuth code exchange — same as before this app had a router.
+`src/auth/session.ts` then handles the exchange and `history.replaceState`s
+back to `/`. Reach for `react-router` only if a third screen with nested
+routes / real URL params shows up.
 
 Cognito infra (User Pool, the `cd-webapp-dev`/`cd-webapp-prod` app
 clients, `auth.civicdog.com` Managed Login domain) is provisioned in
