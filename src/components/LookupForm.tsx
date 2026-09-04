@@ -9,7 +9,7 @@ import {
   type Senator,
   type StateOption,
 } from '../lib/cdServer'
-import { displayUrl, formatMemberName, formatParty } from '../lib/format'
+import { formatMemberName, formatParty } from '../lib/format'
 import { memberPath } from '../lib/router'
 import { RouterLink } from './RouterLink'
 
@@ -61,12 +61,9 @@ function MemberCard({ member, chamber }: { member: Representative | Senator; cha
             {member.party && <p className="text-sm text-blue-100">{formatParty(member.party)}</p>}
           </div>
         </div>
-        {(member.phone || member.website) && (
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-blue-100">
-            {member.phone && <span>{member.phone}</span>}
-            {member.website && <span>{displayUrl(member.website)}</span>}
-          </div>
-        )}
+        {/* Contact details (phone, website) live on the detail page only:
+            the whole card is a single link, so a phone/URL sitting on it
+            reads as clickable when it isn't. One card, one action. */}
         <p className="mt-4 flex items-center gap-1.5 border-t border-white/10 pt-3 text-sm font-semibold text-blue-300 group-hover:text-blue-200">
           View voting record
           <span aria-hidden="true">&rarr;</span>

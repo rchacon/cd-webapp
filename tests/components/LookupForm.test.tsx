@@ -284,8 +284,10 @@ describe('member card rendering', () => {
     expect(await screen.findByText('Jonathan Smith')).toBeInTheDocument()
   })
 
-  it('shows the website host as plain text (the card itself is the only link)', async () => {
-    vi.mocked(getSenators).mockResolvedValueOnce([{ ...SENATOR, website: 'https://example.gov' }])
+  it('keeps contact details (phone, website) off the card -- one card, one action', async () => {
+    vi.mocked(getSenators).mockResolvedValueOnce([
+      { ...SENATOR, phone: '(202) 224-3553', website: 'https://example.gov' },
+    ])
     const user = userEvent.setup()
     render(<LookupForm />)
 
@@ -295,8 +297,9 @@ describe('member card rendering', () => {
     await user.selectOptions(stateSelect, 'California')
     await user.click(screen.getByRole('button', { name: /^search$/i }))
 
-    expect(await screen.findByText('example.gov')).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Website' })).not.toBeInTheDocument()
+    await screen.findByText('John Smith')
+    expect(screen.queryByText('example.gov')).not.toBeInTheDocument()
+    expect(screen.queryByText('(202) 224-3553')).not.toBeInTheDocument()
   })
 
   it('links the whole card to the member detail page and navigates on click', async () => {
