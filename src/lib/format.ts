@@ -159,3 +159,19 @@ export function plainText(html: string): string {
 export function truncate(text: string, max: number): string {
   return text.length <= max ? text : `${text.slice(0, max).trimEnd()}…`
 }
+
+// The full CRS summary, split on block boundaries (<p>, <li>) instead of
+// flattened to one run-on paragraph like plainText() -- for the "Show
+// more" expanded view, where a multi-section summary (several <p>s, a
+// <ul> of bullets) reads far better as separate paragraphs. Falls back
+// to the whole body as a single block when there's no block-level markup
+// to split on (plainText() covers that same text either way).
+export function plainTextBlocks(html: string): string[] {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  const blocks = Array.from(doc.body.querySelectorAll('p, li'))
+    .map((el) => (el.textContent ?? '').replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+  if (blocks.length > 0) return blocks
+  const whole = plainText(html)
+  return whole ? [whole] : []
+}
