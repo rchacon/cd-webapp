@@ -39,14 +39,15 @@ separate Terraform toggle. Local dev needs a `.env.local` (see
 `.env.example`) with the dev client's values; prod's are set as the
 Amplify app's build env vars.
 
-`cd-server` (a GraphQL API, in the `cd-platform` monorepo) exists now but
-is **local-dev-only** — no deployment exists for it yet (no Terraform
-resource). Run it locally via `cd-platform`'s `make start-server` (plus
+`cd-server` (a GraphQL API, in the `cd-platform` monorepo) is deployed at
+`https://server.civicdog.com/graphql`, which prod is wired to via the
+Amplify app's `VITE_CD_SERVER_URL` build env var. `src/lib/cdServer.ts`'s
+default is still `http://localhost:8000/graphql` for local dev — run
+cd-server locally via `cd-platform`'s `make start-server` (plus
 `make start-api` for cd-api, which cd-server calls out to). The lookup
-form talks to it through a hand-rolled GraphQL client in
-`src/lib/cdServer.ts` (`VITE_CD_SERVER_URL`, default
-`http://localhost:8000/graphql`) — no Apollo/urql, same hand-rolled-over-
-library posture as `src/auth/`. Introspection is disabled server-side, so
+form and member detail page talk to it through a hand-rolled GraphQL
+client in `src/lib/cdServer.ts` — no Apollo/urql, same
+hand-rolled-over-library posture as `src/auth/`. Introspection is disabled server-side, so
 the query strings/types in `cdServer.ts` are hand-written against the
 schema, not generated — keep them in sync manually if `cd-server`'s
 schema changes. `getStates` and `getDistrict` are both real backend
