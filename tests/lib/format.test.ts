@@ -202,6 +202,13 @@ describe('plainText', () => {
       'Foo Act Does a thing.',
     )
   })
+
+  it('inserts a separator between adjacent block elements with no whitespace between the tags', () => {
+    // textContent alone would glue these into "...ActThis section...".
+    expect(
+      plainText('<p><strong>Secure America Act</strong></p><p>This section funds border security.</p>'),
+    ).toBe('Secure America Act This section funds border security.')
+  })
 })
 
 describe('plainTextBlocks', () => {
@@ -225,6 +232,10 @@ describe('plainTextBlocks', () => {
 
   it('returns an empty array for empty input', () => {
     expect(plainTextBlocks('')).toEqual([])
+  })
+
+  it('does not double-count a block nested inside another matched block', () => {
+    expect(plainTextBlocks('<ul><li><p>Some point.</p></li></ul>')).toEqual(['Some point.'])
   })
 })
 

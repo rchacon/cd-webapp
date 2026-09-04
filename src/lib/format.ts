@@ -148,12 +148,28 @@ export function formatVoteDate(iso: string): string {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
+// Elements matching `selector`, keeping only the outermost match for any
+// nesting (a <p> inside a <li>, say) -- so a block's text isn't counted
+// once for the outer element and again for the nested one.
+function leafBlocks(doc: Document, selector: string): Element[] {
+  const all = Array.from(doc.body.querySelectorAll(selector))
+  return all.filter((el) => !all.some((other) => other !== el && other.contains(el)))
+}
+
 // CRS bill summaries arrive as HTML. Flatten to text for a preview --
 // DOMParser with 'text/html' never runs scripts, so upstream markup is
-// safe to feed through.
+// safe to feed through. Block-level elements (<p>, <li>) are joined with
+// a space: `doc.body.textContent` alone concatenates adjacent elements
+// with no separator at all, so a title <p> immediately followed by a
+// body <p> (a common CRS shape, no whitespace between the tags) would
+// otherwise glue into one word ("...Act" + "This section..." ->
+// "...ActThis section..."). Falls back to the raw body text when
+// there's no block-level markup to split on.
 export function plainText(html: string): string {
   const doc = new DOMParser().parseFromString(html, 'text/html')
-  return (doc.body.textContent ?? '').replace(/\s+/g, ' ').trim()
+  const blocks = leafBlocks(doc, 'p, li').map((el) => el.textContent ?? '')
+  const text = blocks.length > 0 ? blocks.join(' ') : (doc.body.textContent ?? '')
+  return text.replace(/\s+/g, ' ').trim()
 }
 
 export function truncate(text: string, max: number): string {
@@ -161,17 +177,17 @@ export function truncate(text: string, max: number): string {
 }
 
 // The full CRS summary, split on block boundaries (<p>, <li>) instead of
-// flattened to one run-on paragraph like plainText() -- for the "Show
+// joined into one run-on paragraph like plainText() -- for the "Show
 // more" expanded view, where a multi-section summary (several <p>s, a
 // <ul> of bullets) reads far better as separate paragraphs. Falls back
 // to the whole body as a single block when there's no block-level markup
-// to split on (plainText() covers that same text either way).
+// to split on.
 export function plainTextBlocks(html: string): string[] {
   const doc = new DOMParser().parseFromString(html, 'text/html')
-  const blocks = Array.from(doc.body.querySelectorAll('p, li'))
+  const blocks = leafBlocks(doc, 'p, li')
     .map((el) => (el.textContent ?? '').replace(/\s+/g, ' ').trim())
     .filter(Boolean)
   if (blocks.length > 0) return blocks
-  const whole = plainText(html)
+  const whole = (doc.body.textContent ?? '').replace(/\s+/g, ' ').trim()
   return whole ? [whole] : []
 }

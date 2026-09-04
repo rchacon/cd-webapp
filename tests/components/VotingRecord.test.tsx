@@ -102,8 +102,11 @@ describe('search flow (Representative)', () => {
     expect(screen.getByText('H.R. 2056 · 119th Congress')).toBeInTheDocument()
     expect(screen.getByText('Voted Nay')).toBeInTheDocument()
     expect(screen.getByText('On Passage · Passed · June 12, 2025')).toBeInTheDocument()
-    // CRS summary HTML is flattened to text.
-    expect(screen.getByText(/Bars DC from limiting cooperation\./)).toBeInTheDocument()
+    // CRS summary HTML is flattened to text, with a separator between the
+    // title <p> and the body <p> -- not glued into one word.
+    expect(
+      screen.getByText('DC Immigration Compliance Act Bars DC from limiting cooperation.'),
+    ).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /View full bill on Congress\.gov/i })).toHaveAttribute(
       'href',
       'https://www.congress.gov/bill/119th-congress/house-bill/2056',
