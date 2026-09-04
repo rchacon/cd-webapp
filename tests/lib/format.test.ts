@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { displayUrl, formatMemberName, formatParty, isHttpUrl } from '../../src/lib/format'
+import { displayUrl, formatMemberName, formatParty, isHttpUrl, telHref } from '../../src/lib/format'
 
 const NAME_PARTS = {
   firstName: 'Jane',
@@ -78,5 +78,19 @@ describe('displayUrl', () => {
 
   it('keeps a path but still trims a trailing slash', () => {
     expect(displayUrl('https://example.gov/members/smith/')).toBe('example.gov/members/smith')
+  })
+})
+
+describe('telHref', () => {
+  it('turns a formatted 10-digit US number into a +1 tel: URI', () => {
+    expect(telHref('(202) 225-2523')).toBe('tel:+12022252523')
+  })
+
+  it('treats a leading 1 as the country code', () => {
+    expect(telHref('1-800-555-0199')).toBe('tel:+18005550199')
+  })
+
+  it('passes through anything that is not 10 or 11 digits, digits only', () => {
+    expect(telHref('202-225')).toBe('tel:202225')
   })
 })

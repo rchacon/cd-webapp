@@ -108,6 +108,16 @@ describe('MemberDetailPage', () => {
     )
   })
 
+  it('makes the phone number a tel: link so it is tappable on mobile', async () => {
+    vi.mocked(getMember).mockResolvedValueOnce(MEMBER)
+    render(<MemberDetailPage bioguideId="K000401" />)
+
+    expect(await screen.findByRole('link', { name: '(202) 225-2523' })).toHaveAttribute(
+      'href',
+      'tel:+12022252523',
+    )
+  })
+
   it('never renders a non-http(s) website', async () => {
     vi.mocked(getMember).mockResolvedValueOnce({ ...MEMBER, website: 'javascript:alert(1)' })
     render(<MemberDetailPage bioguideId="K000401" />)

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getMember, type MemberDetail } from '../lib/cdServer'
-import { displayUrl, formatMemberName, formatParty, isHttpUrl } from '../lib/format'
+import { displayUrl, formatMemberName, formatParty, isHttpUrl, telHref } from '../lib/format'
 import { RouterLink } from './RouterLink'
 
 type State =
@@ -74,7 +74,11 @@ function MemberHeader({ member }: { member: MemberDetail }) {
           </div>
           {(member.phone || website) && (
             <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-blue-100">
-              {member.phone && <span>{member.phone}</span>}
+              {member.phone && (
+                <a href={telHref(member.phone)} className={contactLinkClass}>
+                  {member.phone}
+                </a>
+              )}
               {website && (
                 <a href={website} target="_blank" rel="noreferrer" className={contactLinkClass}>
                   {displayUrl(website)}

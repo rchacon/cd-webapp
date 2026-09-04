@@ -32,3 +32,14 @@ export function formatParty(party: string): string {
 export function displayUrl(url: string): string {
   return url.replace(/^https?:\/\//, '').replace(/\/+$/, '')
 }
+
+// A `tel:` URI from a display phone number ("(202) 225-2523" ->
+// "tel:+12022252523") so it's tappable on mobile. Congress numbers are
+// all US/NANP: a bare 10-digit number gets a +1, a leading 1 is treated
+// as the country code.
+export function telHref(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 10) return `tel:+1${digits}`
+  if (digits.length === 11 && digits.startsWith('1')) return `tel:+${digits}`
+  return `tel:${digits}`
+}
