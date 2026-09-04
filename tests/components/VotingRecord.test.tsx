@@ -102,8 +102,11 @@ describe('search flow (Representative)', () => {
     expect(screen.getByText('H.R. 2056 · 119th Congress')).toBeInTheDocument()
     expect(screen.getByText('Voted Nay')).toBeInTheDocument()
     expect(screen.getByText('On Passage · Passed · June 12, 2025')).toBeInTheDocument()
-    // CRS summary HTML is flattened to text.
-    expect(screen.getByText(/Bars DC from limiting cooperation\./)).toBeInTheDocument()
+    // CRS summary HTML is flattened to text, with a separator between the
+    // title <p> and the body <p> -- not glued into one word.
+    expect(
+      screen.getByText('DC Immigration Compliance Act Bars DC from limiting cooperation.'),
+    ).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /View full bill on Congress\.gov/i })).toHaveAttribute(
       'href',
       'https://www.congress.gov/bill/119th-congress/house-bill/2056',
@@ -181,5 +184,55 @@ describe('search flow (Representative)', () => {
 
     resolve([BILL])
     await waitFor(() => expect(screen.getByRole('textbox')).not.toBeDisabled())
+  })
+})
+
+describe('expanding a long CRS summary', () => {
+  const PARA_1 =
+    'This section funds border security technology and screening operations across ports of entry along the southwest, northern, and maritime borders of the United States, including nonintrusive inspection equipment and artificial intelligence tools.'
+  const PARA_2 =
+    'It also authorizes additional personnel for processing and directs a study of staffing needs at each port of entry over the following five fiscal years.'
+  const LONG_BILL: Bill = {
+    ...BILL,
+    billKey: '119-s-2',
+    crsSummary: `<p><strong>Secure America Act</strong></p><p>${PARA_1}</p><p>${PARA_2}</p>`,
+  }
+
+  async function search(bill: Bill) {
+    vi.mocked(searchBills).mockResolvedValueOnce([bill])
+    const user = userEvent.setup()
+    render(<VotingRecord member={REP} />)
+    await user.type(screen.getByRole('textbox'), 'border security')
+    await user.click(screen.getByRole('button', { name: /^search$/i }))
+    await screen.findByText(bill.title!)
+    return user
+  }
+
+  it('truncates a long summary and offers "Show more"', async () => {
+    await search(LONG_BILL)
+
+    expect(screen.getByRole('button', { name: /show more/i })).toBeInTheDocument()
+    expect(screen.queryByText(PARA_2)).not.toBeInTheDocument()
+  })
+
+  it('reveals the full summary as separate paragraphs, then collapses back on "Show less"', async () => {
+    const user = await search(LONG_BILL)
+
+    await user.click(screen.getByRole('button', { name: /show more/i }))
+
+    expect(screen.getByText('Secure America Act')).toBeInTheDocument()
+    expect(screen.getByText(PARA_1)).toBeInTheDocument()
+    expect(screen.getByText(PARA_2)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /show less/i }))
+
+    expect(screen.queryByText(PARA_2)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /show more/i })).toBeInTheDocument()
+  })
+
+  it('shows no "Show more" button for a summary that already fits', async () => {
+    await search(BILL)
+
+    expect(screen.queryByRole('button', { name: /show more/i })).not.toBeInTheDocument()
   })
 })

@@ -12,6 +12,7 @@ import {
   isHttpUrl,
   isNonVotingRole,
   plainText,
+  plainTextBlocks,
   telHref,
   truncate,
   voteTone,
@@ -200,6 +201,41 @@ describe('plainText', () => {
     expect(plainText('<p><strong>Foo Act</strong></p>\n<p>Does&nbsp;a thing.</p>')).toBe(
       'Foo Act Does a thing.',
     )
+  })
+
+  it('inserts a separator between adjacent block elements with no whitespace between the tags', () => {
+    // textContent alone would glue these into "...ActThis section...".
+    expect(
+      plainText('<p><strong>Secure America Act</strong></p><p>This section funds border security.</p>'),
+    ).toBe('Secure America Act This section funds border security.')
+  })
+})
+
+describe('plainTextBlocks', () => {
+  it('splits on <p> boundaries', () => {
+    expect(plainTextBlocks('<p>One.</p><p>Two.</p>')).toEqual(['One.', 'Two.'])
+  })
+
+  it('splits on <li> boundaries inside a list, alongside surrounding <p>s', () => {
+    expect(
+      plainTextBlocks('<p>Intro.</p><ul><li>First.</li><li>Second.</li></ul>'),
+    ).toEqual(['Intro.', 'First.', 'Second.'])
+  })
+
+  it('drops empty blocks', () => {
+    expect(plainTextBlocks('<p></p><p>Real.</p><p>   </p>')).toEqual(['Real.'])
+  })
+
+  it('falls back to the whole body as one block when there is no block-level markup', () => {
+    expect(plainTextBlocks('Just <strong>inline</strong> text.')).toEqual(['Just inline text.'])
+  })
+
+  it('returns an empty array for empty input', () => {
+    expect(plainTextBlocks('')).toEqual([])
+  })
+
+  it('does not double-count a block nested inside another matched block', () => {
+    expect(plainTextBlocks('<ul><li><p>Some point.</p></li></ul>')).toEqual(['Some point.'])
   })
 })
 

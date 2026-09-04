@@ -1,4 +1,4 @@
-import { memo, useRef, useState, type ReactNode } from 'react'
+import { memo, useMemo, useRef, useState, type ReactNode } from 'react'
 import { searchBills, type Bill, type MemberDetail } from '../lib/cdServer'
 import {
   congressGovBillUrl,
@@ -10,6 +10,7 @@ import {
   formatVoteDate,
   isNonVotingRole,
   plainText,
+  plainTextBlocks,
   truncate,
   voteTone,
   type VoteTone,
@@ -225,8 +226,19 @@ function Results({ q, bills, name }: { q: string; bills: Bill[]; name: string })
 // keystroke re-renders Results and every row. `bill` is a stable
 // reference from the results array, so memo skips the row entirely --
 // and with it the DOMParser pass in plainText() for each CRS summary.
+// The Show more/less toggle below is *local* state, which memo doesn't
+// gate (it only compares props) -- summaryText/summaryBlocks are each
+// useMemo'd on crsSummary so clicking it doesn't re-parse HTML that
+// hasn't changed, and the block split only runs at all once expanded.
 const BillResult = memo(function BillResult({ bill, name }: { bill: Bill; name: string }) {
-  const summary = bill.crsSummary ? truncate(plainText(bill.crsSummary), SUMMARY_MAX) : null
+  const [expanded, setExpanded] = useState(false)
+  const { crsSummary } = bill
+  const summaryText = useMemo(() => (crsSummary ? plainText(crsSummary) : null), [crsSummary])
+  const summaryBlocks = useMemo(
+    () => (expanded && crsSummary ? plainTextBlocks(crsSummary) : null),
+    [expanded, crsSummary],
+  )
+  const isLong = summaryText !== null && summaryText.length > SUMMARY_MAX
   const billUrl = congressGovBillUrl(bill.congress, bill.billType, bill.billNumber)
 
   return (
@@ -243,7 +255,29 @@ const BillResult = memo(function BillResult({ bill, name }: { bill: Bill; name: 
       </div>
 
       {bill.title && <h3 className="mt-2 text-lg font-semibold text-white">{bill.title}</h3>}
-      {summary && <p className="mt-2 text-sm leading-relaxed text-blue-100">{summary}</p>}
+
+      {summaryText && (
+        <div className="mt-2 text-sm leading-relaxed text-blue-100">
+          {expanded && summaryBlocks ? (
+            <div className="space-y-2">
+              {summaryBlocks.map((block, i) => (
+                <p key={i}>{block}</p>
+              ))}
+            </div>
+          ) : (
+            <p>{isLong ? truncate(summaryText, SUMMARY_MAX) : summaryText}</p>
+          )}
+          {isLong && (
+            <button
+              type="button"
+              onClick={() => setExpanded((e) => !e)}
+              className="mt-1 font-semibold text-blue-300 underline decoration-blue-300/40 underline-offset-4 hover:text-blue-200"
+            >
+              {expanded ? 'Show less' : 'Show more'}
+            </button>
+          )}
+        </div>
+      )}
 
       {bill.votes.length > 0 ? (
         <ul className="mt-4 space-y-2 border-t border-white/10 pt-4">
