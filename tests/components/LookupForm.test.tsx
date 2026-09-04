@@ -61,6 +61,7 @@ function deferred<T>() {
 beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(getStates).mockResolvedValue(STATES)
+  window.history.pushState({}, '', '/')
 })
 
 describe('address lookup availability regression', () => {
@@ -283,7 +284,7 @@ describe('member card rendering', () => {
     expect(await screen.findByText('Jonathan Smith')).toBeInTheDocument()
   })
 
-  it('renders a Website link for an http(s) URL', async () => {
+  it('shows the website host as plain text (the card itself is the only link)', async () => {
     vi.mocked(getSenators).mockResolvedValueOnce([{ ...SENATOR, website: 'https://example.gov' }])
     const user = userEvent.setup()
     render(<LookupForm />)
@@ -294,16 +295,12 @@ describe('member card rendering', () => {
     await user.selectOptions(stateSelect, 'California')
     await user.click(screen.getByRole('button', { name: /^search$/i }))
 
-    expect(await screen.findByRole('link', { name: 'Website' })).toHaveAttribute(
-      'href',
-      'https://example.gov',
-    )
+    expect(await screen.findByText('example.gov')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Website' })).not.toBeInTheDocument()
   })
 
-  it('does not render a Website link for a non-http(s) URL', async () => {
-    vi.mocked(getSenators).mockResolvedValueOnce([
-      { ...SENATOR, website: 'javascript:alert(1)' },
-    ])
+  it('links the whole card to the member detail page and navigates on click', async () => {
+    vi.mocked(getSenators).mockResolvedValueOnce([SENATOR])
     const user = userEvent.setup()
     render(<LookupForm />)
 
@@ -313,8 +310,11 @@ describe('member card rendering', () => {
     await user.selectOptions(stateSelect, 'California')
     await user.click(screen.getByRole('button', { name: /^search$/i }))
 
-    await screen.findByText('John Smith')
-    expect(screen.queryByRole('link', { name: 'Website' })).not.toBeInTheDocument()
+    const card = await screen.findByRole('link', { name: /John Smith/i })
+    expect(card).toHaveAttribute('href', '/member/B000000')
+
+    await user.click(card)
+    expect(window.location.pathname).toBe('/member/B000000')
   })
 
   it('renders the role for a representatives search', async () => {
