@@ -15,11 +15,15 @@ import {
   type VoteTone,
 } from '../lib/format'
 
+// Polarizing, and each currently returns bills from searchBills against
+// the recorded-vote corpus (checked 2026-09-04). If the corpus shifts
+// and one starts coming back empty, swap it -- there's no "popular
+// topics" endpoint to drive these from.
 const SUGGESTED_TOPICS = [
   'immigration enforcement',
-  'student loan forgiveness',
-  'gun background checks',
+  'firearm regulation',
   'abortion access',
+  'transgender rights',
 ]
 const SUMMARY_MAX = 280
 
