@@ -149,6 +149,26 @@ describe('App', () => {
     expect(
       screen.queryByRole('heading', { name: /find your representatives/i }),
     ).not.toBeInTheDocument()
+    // LookupForm isn't mounted at all on a cold deep link -- a shared
+    // link, a crawler, a social-link preview -- so it shouldn't cost a
+    // getStates() round trip nobody asked for.
+    expect(getStates).not.toHaveBeenCalled()
+  })
+
+  it('mounts the search form once the user navigates to it from a cold member deep link', async () => {
+    vi.mocked(useAuth).mockReturnValue(LOGGED_OUT)
+    vi.mocked(getMember).mockResolvedValueOnce(KEVIN_KILEY)
+    window.history.pushState({}, '', '/member/K000401')
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Kevin Kiley' })
+    expect(getStates).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('link', { name: /back to search/i }))
+
+    expect(await screen.findByRole('heading', { name: /find your representatives/i })).toBeInTheDocument()
+    expect(getStates).toHaveBeenCalledTimes(1)
   })
 
   it('keeps the search results and selection after visiting a member and going back', async () => {

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useAuth } from './auth/session'
 import { LookupForm } from './components/LookupForm'
 import { MemberDetailPage } from './components/MemberDetailPage'
@@ -6,6 +7,15 @@ import { useRoute } from './lib/router'
 function App() {
   const { displayName, isLoading, login, logout } = useAuth()
   const route = useRoute()
+  // Mount LookupForm lazily, on the first visit to / -- then keep it
+  // mounted (hidden) from then on, so a later trip to a member and back
+  // preserves it. A cold load straight at /member/:bioguideId (a shared
+  // link, a crawler, a social-link preview) never needs the search form,
+  // so it shouldn't pay for LookupForm's getStates() call.
+  const [searchMounted, setSearchMounted] = useState(route.name === 'home')
+  useEffect(() => {
+    if (route.name === 'home') setSearchMounted(true)
+  }, [route.name])
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-navy-900 to-navy-950">
@@ -54,14 +64,11 @@ function App() {
       </header>
 
       <main className="flex-1 px-6 pb-16">
-        {/* LookupForm stays mounted (just hidden) across the member route,
-            rather than unmounting on navigate, so its search results and
-            in-progress query survive a visit to a member's detail page --
-            Back restores the list instead of re-fetching getStates() and
-            resetting chamber/state/district to defaults. */}
-        <div hidden={route.name === 'member'}>
-          <LookupForm />
-        </div>
+        {searchMounted && (
+          <div hidden={route.name === 'member'}>
+            <LookupForm />
+          </div>
+        )}
         {route.name === 'member' && (
           <MemberDetailPage key={route.bioguideId} bioguideId={route.bioguideId} />
         )}
