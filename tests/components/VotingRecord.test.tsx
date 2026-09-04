@@ -135,6 +135,8 @@ describe('search flow (Representative)', () => {
     expect(
       await screen.findByText(/No bills matched .cryptocurrency mining energy limits./i),
     ).toBeInTheDocument()
+    // Scope is the recorded-vote corpus, not "bills this member voted on".
+    expect(screen.getByText(/recorded House floor vote/i)).toBeInTheDocument()
   })
 
   it('a suggested-topic chip runs that search', async () => {

@@ -189,8 +189,8 @@ function Results({ q, bills, name }: { q: string; bills: Bill[]; name: string })
       <div className="mt-6 rounded-xl bg-white/5 px-5 py-8 text-center ring-1 ring-white/10">
         <p className="text-base font-semibold text-white">No bills matched &ldquo;{q}&rdquo;</p>
         <p className="mx-auto mt-2 max-w-sm text-sm text-blue-100">
-          among the bills {name} has a recorded vote on. Try a broader topic, or word it
-          differently.
+          Search covers bills that have come up for a recorded House floor vote &mdash; a narrow
+          topic can match none. Try a broader topic, or word it differently.
         </p>
       </div>
     )
