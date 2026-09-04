@@ -240,6 +240,36 @@ describe('search flows', () => {
     expect(getRepresentatives).toHaveBeenCalledWith('CA', 7)
   })
 
+  it('normalizes a geocoded at-large district to 0 for a single-seat jurisdiction', async () => {
+    // getDistrict can hand back a Census FIPS at-large code (e.g. 98) for
+    // DC / the territories; cd-api addresses that seat as district 0.
+    vi.mocked(getDistrict).mockResolvedValueOnce({ state: 'PR', district: 98 })
+    vi.mocked(getRepresentatives).mockResolvedValueOnce([REP])
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    await user.click(screen.getByRole('button', { name: /enter your address instead/i }))
+    await user.type(screen.getByPlaceholderText(/street address/i), '1 Calle San Justo, San Juan, PR')
+    await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+    await waitFor(() => expect(getRepresentatives).toHaveBeenCalledWith('PR', 0))
+  })
+
+  it('rejects a geocoded district outside a multi-seat state\'s range with a friendly message', async () => {
+    vi.mocked(getDistrict).mockResolvedValueOnce({ state: 'CA', district: 99 })
+    const user = userEvent.setup()
+    render(<LookupForm />)
+
+    await user.click(screen.getByRole('button', { name: /enter your address instead/i }))
+    await user.type(screen.getByPlaceholderText(/street address/i), 'somewhere odd')
+    await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /couldn't match that address to a House district/i,
+    )
+    expect(getRepresentatives).not.toHaveBeenCalled()
+  })
+
   it('renders the error message from a thrown CdServerError', async () => {
     vi.mocked(getSenators).mockRejectedValueOnce(new CdServerError('boom'))
     const user = userEvent.setup()

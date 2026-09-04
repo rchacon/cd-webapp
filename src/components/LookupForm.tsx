@@ -9,7 +9,14 @@ import {
   type Senator,
   type StateOption,
 } from '../lib/cdServer'
-import { errorMessage, formatMemberName, formatParty, isNonVotingRole } from '../lib/format'
+import {
+  districtRange,
+  errorMessage,
+  formatMemberName,
+  formatParty,
+  isNonVotingRole,
+  isValidDistrict,
+} from '../lib/format'
 import { memberPath } from '../lib/router'
 import { RouterLink } from './RouterLink'
 
@@ -108,10 +115,11 @@ export function LookupForm() {
   const senateEligibleStates = states?.filter((s) => s.votingSeats) ?? []
 
   const selectedState = states?.find((s) => s.abbr === stateCode)
-  // At-large states (a single seat) use district 0; every other state numbers districts 1..seats.
   const isAtLargeState = selectedState?.seats === 1
-  const districtMin = selectedState && !isAtLargeState ? 1 : 0
-  const districtMax = selectedState && (isAtLargeState ? 0 : selectedState.seats)
+  // Same at-large/1..seats rule as the address-lookup check below and cd-api.
+  const range = selectedState ? districtRange(selectedState.seats) : null
+  const districtMin = range?.min ?? 0
+  const districtMax = range?.max
 
   function resetStatus() {
     if (status.kind !== 'loading') setStatus({ kind: 'idle' })
@@ -133,13 +141,32 @@ export function LookupForm() {
         const resolved = await getDistrict(address)
         resolvedState = resolved.state
         resolvedDistrict = resolved.district
+        // getDistrict() hands back whatever the geocoder produced -- for a
+        // single-seat jurisdiction (DC, the territories) that's a Census
+        // FIPS at-large code, not the 0 cd-api wants; for a multi-seat
+        // state anything outside 1..seats is a geocode we can't use. Fix
+        // the first, reject the second with a friendly message rather than
+        // forwarding it to getRepresentatives() for a raw 404.
+        const seats = states?.find((s) => s.abbr === resolvedState)?.seats
+        if (seats === 1) {
+          resolvedDistrict = 0
+        } else if (seats != null && !isValidDistrict(seats, resolvedDistrict)) {
+          throw new CdServerError(
+            "We couldn't match that address to a House district. Try searching by state and district instead.",
+          )
+        }
       } else {
         resolvedDistrict = Number(district)
         // Number('') is 0, not NaN -- an empty field would otherwise silently
         // query an at-large district instead of being rejected. The `required`
         // attribute normally blocks this, but that's a UI-layer constraint,
-        // not a guarantee handleSubmit itself can rely on.
-        if (district.trim() === '' || !Number.isInteger(resolvedDistrict)) {
+        // not a guarantee handleSubmit itself can rely on. The range check
+        // mirrors the input's min/max via the shared isValidDistrict rule.
+        if (
+          district.trim() === '' ||
+          !Number.isInteger(resolvedDistrict) ||
+          (selectedState && !isValidDistrict(selectedState.seats, resolvedDistrict))
+        ) {
           throw new CdServerError('Enter a valid district number.')
         }
       }

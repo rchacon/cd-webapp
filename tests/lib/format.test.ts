@@ -3,6 +3,7 @@ import {
   congressGovBillUrl,
   congressLabel,
   displayUrl,
+  districtRange,
   errorMessage,
   formatBillId,
   formatMemberName,
@@ -11,6 +12,7 @@ import {
   formatVoteDate,
   isHttpUrl,
   isNonVotingRole,
+  isValidDistrict,
   plainText,
   telHref,
   truncate,
@@ -90,6 +92,28 @@ describe('isNonVotingRole', () => {
   it('is false for a Senator or Representative', () => {
     expect(isNonVotingRole('Senator')).toBe(false)
     expect(isNonVotingRole('Representative')).toBe(false)
+  })
+})
+
+describe('districtRange / isValidDistrict', () => {
+  it('an at-large (single-seat) state accepts only district 0', () => {
+    expect(districtRange(1)).toEqual({ min: 0, max: 0 })
+    expect(isValidDistrict(1, 0)).toBe(true)
+    expect(isValidDistrict(1, 1)).toBe(false)
+    expect(isValidDistrict(1, 98)).toBe(false)
+  })
+
+  it('a multi-seat state accepts 1..seats', () => {
+    expect(districtRange(52)).toEqual({ min: 1, max: 52 })
+    expect(isValidDistrict(52, 1)).toBe(true)
+    expect(isValidDistrict(52, 52)).toBe(true)
+    expect(isValidDistrict(52, 0)).toBe(false)
+    expect(isValidDistrict(52, 53)).toBe(false)
+  })
+
+  it('rejects a non-integer district', () => {
+    expect(isValidDistrict(52, 3.5)).toBe(false)
+    expect(isValidDistrict(52, Number.NaN)).toBe(false)
   })
 })
 

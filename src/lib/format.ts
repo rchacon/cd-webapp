@@ -29,6 +29,20 @@ export function isNonVotingRole(role: string): boolean {
   return NON_VOTING_ROLES.has(role)
 }
 
+// cd-api's is_valid_district rule: an at-large state (a single seat) uses
+// district 0; every other state numbers its districts 1..seats. One
+// source of truth for the district input's min/max and for the
+// address-lookup flow's check on whatever getDistrict() geocodes to.
+export function districtRange(seats: number): { min: number; max: number } {
+  return seats === 1 ? { min: 0, max: 0 } : { min: 1, max: seats }
+}
+
+export function isValidDistrict(seats: number, district: number): boolean {
+  if (!Number.isInteger(district)) return false
+  const { min, max } = districtRange(seats)
+  return district >= min && district <= max
+}
+
 export function isHttpUrl(url: string): boolean {
   try {
     return ['http:', 'https:'].includes(new URL(url).protocol)
