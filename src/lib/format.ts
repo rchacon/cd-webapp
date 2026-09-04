@@ -11,6 +11,16 @@ export function formatMemberName(member: NameParts): string {
     .join(' ')
 }
 
+// Delegates (DC and the five territories) and Puerto Rico's Resident
+// Commissioner hold House seats and vote in committee, but not on floor
+// passage -- so "voting record" doesn't apply to them the way it does
+// to a Senator or Representative. Matches cd-lib's role vocabulary.
+const NON_VOTING_ROLES = new Set(['Delegate', 'Resident Commissioner'])
+
+export function isNonVotingRole(role: string): boolean {
+  return NON_VOTING_ROLES.has(role)
+}
+
 export function isHttpUrl(url: string): boolean {
   try {
     return ['http:', 'https:'].includes(new URL(url).protocol)

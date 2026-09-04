@@ -9,7 +9,7 @@ import {
   type Senator,
   type StateOption,
 } from '../lib/cdServer'
-import { formatMemberName, formatParty } from '../lib/format'
+import { formatMemberName, formatParty, isNonVotingRole } from '../lib/format'
 import { memberPath } from '../lib/router'
 import { RouterLink } from './RouterLink'
 
@@ -42,6 +42,9 @@ function MemberCard({ member, chamber }: { member: Representative | Senator; cha
   // happens to include a `role` field, which could drift from this component
   // if the query strings in cdServer.ts ever change independently.
   const role = chamber === 'representatives' ? (member as Representative).role : null
+  // Delegates / the Resident Commissioner can't vote on floor passage, so
+  // "View voting record" would misrepresent what the detail page offers.
+  const cta = role && isNonVotingRole(role) ? 'View details' : 'View voting record'
 
   return (
     <li>
@@ -65,7 +68,7 @@ function MemberCard({ member, chamber }: { member: Representative | Senator; cha
             the whole card is a single link, so a phone/URL sitting on it
             reads as clickable when it isn't. One card, one action. */}
         <p className="mt-4 flex items-center gap-1.5 border-t border-white/10 pt-3 text-sm font-semibold text-blue-300 group-hover:text-blue-200">
-          View voting record
+          {cta}
           <span aria-hidden="true">&rarr;</span>
         </p>
       </RouterLink>

@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { displayUrl, formatMemberName, formatParty, isHttpUrl, telHref } from '../../src/lib/format'
+import {
+  displayUrl,
+  formatMemberName,
+  formatParty,
+  isHttpUrl,
+  isNonVotingRole,
+  telHref,
+} from '../../src/lib/format'
 
 const NAME_PARTS = {
   firstName: 'Jane',
@@ -51,6 +58,18 @@ describe('isHttpUrl', () => {
   it('rejects strings that are not URLs', () => {
     expect(isHttpUrl('not a url')).toBe(false)
     expect(isHttpUrl('')).toBe(false)
+  })
+})
+
+describe('isNonVotingRole', () => {
+  it('is true for a Delegate and the Resident Commissioner', () => {
+    expect(isNonVotingRole('Delegate')).toBe(true)
+    expect(isNonVotingRole('Resident Commissioner')).toBe(true)
+  })
+
+  it('is false for a Senator or Representative', () => {
+    expect(isNonVotingRole('Senator')).toBe(false)
+    expect(isNonVotingRole('Representative')).toBe(false)
   })
 })
 
