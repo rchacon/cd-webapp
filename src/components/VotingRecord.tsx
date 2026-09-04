@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { memo, useRef, useState, type ReactNode } from 'react'
 import { searchBills, type Bill, type MemberDetail } from '../lib/cdServer'
 import {
   congressGovBillUrl,
@@ -217,7 +217,11 @@ function Results({ q, bills, name }: { q: string; bills: Bill[]; name: string })
   )
 }
 
-function BillResult({ bill, name }: { bill: Bill; name: string }) {
+// memo: the search input stays editable in the 'done' state, so a
+// keystroke re-renders Results and every row. `bill` is a stable
+// reference from the results array, so memo skips the row entirely --
+// and with it the DOMParser pass in plainText() for each CRS summary.
+const BillResult = memo(function BillResult({ bill, name }: { bill: Bill; name: string }) {
   const summary = bill.crsSummary ? truncate(plainText(bill.crsSummary), SUMMARY_MAX) : null
   const billUrl = congressGovBillUrl(bill.congress, bill.billType, bill.billNumber)
 
@@ -267,7 +271,7 @@ function BillResult({ bill, name }: { bill: Bill; name: string }) {
       )}
     </li>
   )
-}
+})
 
 const VOTE_PILL_CLASSES: Record<VoteTone, string> = {
   yea: 'bg-green-500/15 text-green-300 ring-green-400/30',
