@@ -61,8 +61,7 @@ export function VotingRecord({ member }: { member: MemberDetail }) {
       <Section>
         <h2 className="text-xl font-semibold text-white">Voting record</h2>
         <p className="mt-2 max-w-prose text-sm text-blue-100">
-          Searching a senator&rsquo;s votes by topic is coming soon &mdash; Senate roll-call data
-          isn&rsquo;t in the pipeline yet.
+          Searching a senator&rsquo;s votes by topic is coming soon.
         </p>
       </Section>
     )

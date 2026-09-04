@@ -74,7 +74,6 @@ describe('role branches', () => {
     render(<VotingRecord member={{ ...REP, role: 'Senator', district: null }} />)
 
     expect(screen.getByText(/coming soon/i)).toBeInTheDocument()
-    expect(screen.getByText(/Senate roll-call data/i)).toBeInTheDocument()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 
