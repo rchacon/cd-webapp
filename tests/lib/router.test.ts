@@ -24,6 +24,11 @@ describe('parseRoute', () => {
     expect(parseRoute('/member/K000401/votes')).toEqual({ name: 'home' })
     expect(parseRoute('/something-else')).toEqual({ name: 'home' })
   })
+
+  it('falls back to home for a malformed percent-sequence instead of throwing', () => {
+    expect(parseRoute('/member/%')).toEqual({ name: 'home' })
+    expect(parseRoute('/member/%E0%A4')).toEqual({ name: 'home' })
+  })
 })
 
 describe('memberPath', () => {

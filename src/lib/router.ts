@@ -17,7 +17,15 @@ export function parseRoute(pathname: string): Route {
     const rest = pathname.slice(MEMBER_PREFIX.length)
     // Only a bare id -- no further path segments, no empty id.
     if (rest && !rest.includes('/')) {
-      return { name: 'member', bioguideId: decodeURIComponent(rest) }
+      try {
+        return { name: 'member', bioguideId: decodeURIComponent(rest) }
+      } catch {
+        // A malformed percent-sequence ("/member/%") makes
+        // decodeURIComponent throw URIError. parseRoute runs during
+        // render with no error boundary above it, so fall back to home
+        // rather than white-screen the whole app.
+        return { name: 'home' }
+      }
     }
   }
   return { name: 'home' }
