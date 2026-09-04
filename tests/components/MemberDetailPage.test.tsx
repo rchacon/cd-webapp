@@ -20,7 +20,7 @@ const MEMBER: MemberDetail = {
   role: 'Representative',
   district: 3,
   state: 'CA',
-  party: 'Republican',
+  party: 'REPUBLICAN',
   phone: '(202) 225-2523',
   website: 'https://kiley.house.gov',
   photoUrl: null,
@@ -67,6 +67,7 @@ describe('MemberDetailPage', () => {
     render(<MemberDetailPage bioguideId="K000401" />)
 
     expect(await screen.findByRole('heading', { name: 'Kevin Kiley' })).toBeInTheDocument()
+    // cd-server relays "REPUBLICAN"; the page title-cases it.
     expect(screen.getByText('Republican')).toBeInTheDocument()
     expect(screen.getByText('U.S. Representative · CA-3')).toBeInTheDocument()
   })
@@ -93,13 +94,17 @@ describe('MemberDetailPage', () => {
     expect(await screen.findByText('U.S. Senator · CA')).toBeInTheDocument()
   })
 
-  it('links an http(s) website', async () => {
-    vi.mocked(getMember).mockResolvedValueOnce(MEMBER)
+  it('links an http(s) website, shown without scheme or trailing slash', async () => {
+    vi.mocked(getMember).mockResolvedValueOnce({
+      ...MEMBER,
+      website: 'https://kiley.house.gov/',
+    })
     render(<MemberDetailPage bioguideId="K000401" />)
 
+    // Label is trimmed for display; href keeps the real URL.
     expect(await screen.findByRole('link', { name: 'kiley.house.gov' })).toHaveAttribute(
       'href',
-      'https://kiley.house.gov',
+      'https://kiley.house.gov/',
     )
   })
 

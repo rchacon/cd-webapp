@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getMember, type MemberDetail } from '../lib/cdServer'
-import { formatMemberName, isHttpUrl } from '../lib/format'
+import { displayUrl, formatMemberName, formatParty, isHttpUrl } from '../lib/format'
 import { RouterLink } from './RouterLink'
 
 type State =
@@ -67,7 +67,7 @@ function MemberHeader({ member }: { member: MemberDetail }) {
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
             {member.party && (
               <span className="rounded bg-white/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-blue-100 ring-1 ring-white/15">
-                {member.party}
+                {formatParty(member.party)}
               </span>
             )}
             <span className="text-sm text-blue-100">{describeSeat(member)}</span>
@@ -76,7 +76,7 @@ function MemberHeader({ member }: { member: MemberDetail }) {
             {member.phone && <span>{member.phone}</span>}
             {website && (
               <a href={website} target="_blank" rel="noreferrer" className={contactLinkClass}>
-                {website.replace(/^https?:\/\//, '')}
+                {displayUrl(website)}
               </a>
             )}
             <a

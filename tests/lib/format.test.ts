@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatMemberName, isHttpUrl } from '../../src/lib/format'
+import { displayUrl, formatMemberName, formatParty, isHttpUrl } from '../../src/lib/format'
 
 const NAME_PARTS = {
   firstName: 'Jane',
@@ -51,5 +51,32 @@ describe('isHttpUrl', () => {
   it('rejects strings that are not URLs', () => {
     expect(isHttpUrl('not a url')).toBe(false)
     expect(isHttpUrl('')).toBe(false)
+  })
+})
+
+describe('formatParty', () => {
+  it('title-cases the SHOUTING party names cd-server relays', () => {
+    expect(formatParty('DEMOCRATIC')).toBe('Democratic')
+    expect(formatParty('REPUBLICAN')).toBe('Republican')
+    expect(formatParty('INDEPENDENT')).toBe('Independent')
+  })
+
+  it('title-cases each word of a hyphenated or multi-word name', () => {
+    expect(formatParty('DEMOCRATIC-FARMER-LABOR')).toBe('Democratic-Farmer-Labor')
+  })
+
+  it('leaves an already mixed-case value alone', () => {
+    expect(formatParty('Democratic')).toBe('Democratic')
+  })
+})
+
+describe('displayUrl', () => {
+  it('drops the scheme and any trailing slash', () => {
+    expect(displayUrl('https://ocasio-cortez.house.gov/')).toBe('ocasio-cortez.house.gov')
+    expect(displayUrl('http://example.gov')).toBe('example.gov')
+  })
+
+  it('keeps a path but still trims a trailing slash', () => {
+    expect(displayUrl('https://example.gov/members/smith/')).toBe('example.gov/members/smith')
   })
 })

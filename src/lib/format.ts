@@ -18,3 +18,17 @@ export function isHttpUrl(url: string): boolean {
     return false
   }
 }
+
+// cd-server relays Congress.gov's party names verbatim, and they arrive
+// SHOUTING ("DEMOCRATIC", "REPUBLICAN", "INDEPENDENT"). Title-case an
+// all-caps value for display; leave anything already mixed-case alone.
+export function formatParty(party: string): string {
+  if (party !== party.toUpperCase()) return party
+  return party.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+// A URL trimmed for display next to a member: no scheme, no trailing
+// slash (cd-server hands back e.g. "https://ocasio-cortez.house.gov/").
+export function displayUrl(url: string): string {
+  return url.replace(/^https?:\/\//, '').replace(/\/+$/, '')
+}
