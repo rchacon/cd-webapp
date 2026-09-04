@@ -54,10 +54,16 @@ function App() {
       </header>
 
       <main className="flex-1 px-6 pb-16">
-        {route.name === 'member' ? (
-          <MemberDetailPage key={route.bioguideId} bioguideId={route.bioguideId} />
-        ) : (
+        {/* LookupForm stays mounted (just hidden) across the member route,
+            rather than unmounting on navigate, so its search results and
+            in-progress query survive a visit to a member's detail page --
+            Back restores the list instead of re-fetching getStates() and
+            resetting chamber/state/district to defaults. */}
+        <div hidden={route.name === 'member'}>
           <LookupForm />
+        </div>
+        {route.name === 'member' && (
+          <MemberDetailPage key={route.bioguideId} bioguideId={route.bioguideId} />
         )}
       </main>
 

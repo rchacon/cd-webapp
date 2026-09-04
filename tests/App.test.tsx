@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../src/App'
 import { useAuth } from '../src/auth/session'
-import { getMember } from '../src/lib/cdServer'
+import { getMember, getSenators, getStates } from '../src/lib/cdServer'
 
 vi.mock('../src/auth/session', () => ({ useAuth: vi.fn() }))
 vi.mock('../src/lib/cdServer', async () => {
@@ -11,6 +11,7 @@ vi.mock('../src/lib/cdServer', async () => {
   return {
     ...actual,
     getStates: vi.fn().mockResolvedValue([]),
+    getSenators: vi.fn(),
     getMember: vi.fn(),
   }
 })
@@ -20,6 +21,36 @@ const LOGGED_OUT = {
   isLoading: false,
   login: vi.fn(),
   logout: vi.fn(),
+}
+
+const KEVIN_KILEY = {
+  bioguideId: 'K000401',
+  firstName: 'Kevin',
+  middleName: null,
+  lastName: 'Kiley',
+  nickname: null,
+  suffix: null,
+  role: 'Representative',
+  district: 3,
+  state: 'CA',
+  party: 'Republican',
+  phone: null,
+  website: null,
+  photoUrl: null,
+  inOffice: true,
+}
+
+const SENATOR = {
+  bioguideId: 'B000000',
+  firstName: 'John',
+  middleName: null,
+  lastName: 'Smith',
+  nickname: null,
+  suffix: null,
+  party: 'Independent',
+  phone: null,
+  website: null,
+  photoUrl: null,
 }
 
 beforeEach(() => {
@@ -109,22 +140,7 @@ describe('App', () => {
 
   it('renders the member detail page at /member/:bioguideId', async () => {
     vi.mocked(useAuth).mockReturnValue(LOGGED_OUT)
-    vi.mocked(getMember).mockResolvedValueOnce({
-      bioguideId: 'K000401',
-      firstName: 'Kevin',
-      middleName: null,
-      lastName: 'Kiley',
-      nickname: null,
-      suffix: null,
-      role: 'Representative',
-      district: 3,
-      state: 'CA',
-      party: 'Republican',
-      phone: null,
-      website: null,
-      photoUrl: null,
-      inOffice: true,
-    })
+    vi.mocked(getMember).mockResolvedValueOnce(KEVIN_KILEY)
     window.history.pushState({}, '', '/member/K000401')
     render(<App />)
 
@@ -133,5 +149,41 @@ describe('App', () => {
     expect(
       screen.queryByRole('heading', { name: /find your representatives/i }),
     ).not.toBeInTheDocument()
+  })
+
+  it('keeps the search results and selection after visiting a member and going back', async () => {
+    vi.mocked(useAuth).mockReturnValue(LOGGED_OUT)
+    vi.mocked(getStates).mockResolvedValue([
+      { abbr: 'CA', name: 'California', seats: 52, votingSeats: true },
+    ])
+    vi.mocked(getSenators).mockResolvedValueOnce([SENATOR])
+    vi.mocked(getMember).mockResolvedValueOnce(KEVIN_KILEY)
+
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('radio', { name: 'Senators' }))
+    const stateSelect = await screen.findByRole('combobox')
+    await waitFor(() => expect(stateSelect).not.toBeDisabled())
+    await user.selectOptions(stateSelect, 'California')
+    await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+    const card = await screen.findByRole('link', { name: /John Smith/i })
+    await user.click(card)
+
+    await screen.findByRole('heading', { name: 'Kevin Kiley' })
+    expect(getStates).toHaveBeenCalledTimes(1)
+
+    // Simulate the browser Back button: LookupForm was never unmounted, so
+    // its results and selection should still be exactly as left.
+    act(() => {
+      window.history.pushState({}, '', '/')
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    })
+
+    expect(screen.getByRole('radio', { name: 'Senators' })).toBeChecked()
+    expect(screen.getByRole('combobox')).toHaveValue('CA')
+    expect(screen.getByText('John Smith')).toBeInTheDocument()
+    expect(getStates).toHaveBeenCalledTimes(1)
   })
 })
