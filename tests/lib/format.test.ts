@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   displayUrl,
+  errorMessage,
   formatMemberName,
   formatParty,
   isHttpUrl,
@@ -41,6 +42,17 @@ describe('formatMemberName', () => {
         suffix: null,
       }),
     ).toBe('')
+  })
+})
+
+describe('errorMessage', () => {
+  it('uses the message of an Error (e.g. CdServerError)', () => {
+    expect(errorMessage(new Error('boom'))).toBe('boom')
+  })
+
+  it('falls back to a generic message for a non-Error', () => {
+    expect(errorMessage('nope')).toBe('Something went wrong. Please try again.')
+    expect(errorMessage(undefined)).toBe('Something went wrong. Please try again.')
   })
 })
 

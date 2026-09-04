@@ -2,6 +2,14 @@ import type { Member } from './cdServer'
 
 type NameParts = Pick<Member, 'firstName' | 'middleName' | 'lastName' | 'nickname' | 'suffix'>
 
+// The message to show for a rejected promise: a CdServerError (or any
+// Error) carries a user-facing string; anything else gets a generic
+// fallback. Shared by every screen that awaits a cd-server call.
+export function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message
+  return 'Something went wrong. Please try again.'
+}
+
 // nickname/firstName is an `||`, not `??`, on purpose: cd-server sends an
 // empty string (not null) for a member with no recorded nickname, and an
 // empty nickname should still fall through to the first name.

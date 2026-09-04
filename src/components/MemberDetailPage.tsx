@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react'
 import { getMember, type MemberDetail } from '../lib/cdServer'
-import { displayUrl, formatMemberName, formatParty, isHttpUrl, telHref } from '../lib/format'
+import {
+  displayUrl,
+  errorMessage,
+  formatMemberName,
+  formatParty,
+  isHttpUrl,
+  telHref,
+} from '../lib/format'
 import { RouterLink } from './RouterLink'
 
 type State =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
   | { kind: 'loaded'; member: MemberDetail }
-
-function errorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message
-  return 'Something went wrong. Please try again.'
-}
 
 // e.g. "U.S. Representative · CA-3", "U.S. Senator · CA", "Delegate · GU".
 // The list resolvers hand back a full state name; getMember only carries

@@ -9,7 +9,7 @@ import {
   type Senator,
   type StateOption,
 } from '../lib/cdServer'
-import { formatMemberName, formatParty, isNonVotingRole } from '../lib/format'
+import { errorMessage, formatMemberName, formatParty, isNonVotingRole } from '../lib/format'
 import { memberPath } from '../lib/router'
 import { RouterLink } from './RouterLink'
 
@@ -30,11 +30,6 @@ type Status =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
   | { kind: 'success'; members: Array<Representative | Senator> }
-
-function errorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message
-  return 'Something went wrong. Please try again.'
-}
 
 function MemberCard({ member, chamber }: { member: Representative | Senator; chamber: Chamber }) {
   // The chamber that was actually searched is the authoritative signal for
