@@ -5,6 +5,7 @@ import {
   getDistrict,
   getRepresentatives,
   getSenators,
+  getMember,
 } from '../../src/lib/cdServer'
 import { getIdToken } from '../../src/auth/session'
 
@@ -255,6 +256,53 @@ describe('getSenators', () => {
 
     await expect(getSenators('CA')).rejects.toThrow(
       new CdServerError('Lookup service returned an error (status 500).'),
+    )
+  })
+})
+
+describe('getMember', () => {
+  const MEMBER = {
+    bioguideId: 'K000401',
+    firstName: 'Kevin',
+    middleName: null,
+    lastName: 'Kiley',
+    nickname: null,
+    suffix: null,
+    role: 'Representative',
+    district: 3,
+    state: 'CA',
+    party: 'Republican',
+    phone: null,
+    website: null,
+    photoUrl: null,
+    inOffice: true,
+  }
+
+  it('returns the parsed member detail on success', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: { getMember: MEMBER } }),
+    } as Response)
+
+    const result = await getMember('K000401')
+
+    expect(result).toEqual(MEMBER)
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:8000/graphql',
+      expect.objectContaining({ method: 'POST' }),
+    )
+  })
+
+  it('surfaces a cd-api 404 (unknown bioguide id) as a CdServerError', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ errors: [{ message: 'cd-api request failed: 404' }] }),
+    } as Response)
+
+    await expect(getMember('X000000')).rejects.toThrow(
+      new CdServerError('cd-api request failed: 404'),
     )
   })
 })
