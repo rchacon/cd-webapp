@@ -83,6 +83,13 @@ describe('MemberDetailPage', () => {
     expect(await screen.findByText('U.S. Representative · AK at-large')).toBeInTheDocument()
   })
 
+  it('falls back to state alone for a representative with a null district', async () => {
+    vi.mocked(getMember).mockResolvedValueOnce({ ...MEMBER, district: null })
+    render(<MemberDetailPage bioguideId="K000401" />)
+
+    expect(await screen.findByText('U.S. Representative · CA')).toBeInTheDocument()
+  })
+
   it('describes a senator without a district', async () => {
     vi.mocked(getMember).mockResolvedValueOnce({
       ...MEMBER,

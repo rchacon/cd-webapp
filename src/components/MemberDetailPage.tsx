@@ -24,10 +24,14 @@ function describeSeat(member: MemberDetail): string {
     member.role === 'Senator' || member.role === 'Representative'
       ? `U.S. ${member.role}`
       : member.role
-  if (member.role === 'Representative') {
-    const seat = member.district === 0 ? `${member.state} at-large` : `${member.state}-${member.district}`
+  if (member.role === 'Representative' && member.district != null) {
+    const seat =
+      member.district === 0 ? `${member.state} at-large` : `${member.state}-${member.district}`
     return `${title} · ${seat}`
   }
+  // A Representative with a null district (unexpected from the list path,
+  // but getMember is a separate resolver) falls through to state alone
+  // rather than rendering "CA-null".
   return `${title} · ${member.state}`
 }
 
